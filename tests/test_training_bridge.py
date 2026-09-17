@@ -8,7 +8,7 @@ import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "yue_studio"))
 
-from training_bridge import TrainingBridge, parse_training_line, safe_run_name
+from training_bridge import TrainingBridge, parse_training_line, safe_run_name, training_values
 
 
 class TrainingBridgeTests(unittest.TestCase):
@@ -50,6 +50,16 @@ class TrainingBridgeTests(unittest.TestCase):
         self.assertEqual(saved["minimum_free_gb"], 30)
         self.assertNotIn("unexpected", saved)
 
+    def test_training_values_accept_custom_controls(self):
+        values = training_values({"steps": 750, "rank": 80, "learning_rate": "4e-5", "checkpoint_every": 125, "seed": 42})
+        self.assertEqual(values, {"steps": 750, "rank": 80, "learning_rate": 4e-5, "checkpoint_every": 125, "seed": 42})
+
+    def test_training_values_reject_invalid_controls(self):
+        with self.assertRaisesRegex(ValueError, "Learning rate"):
+            training_values({"steps": 1000, "rank": 64, "learning_rate": 0.01, "checkpoint_every": 200, "seed": 1})
+        with self.assertRaisesRegex(ValueError, "multiple of 8"):
+            training_values({"steps": 1000, "rank": 65, "learning_rate": 6e-5, "checkpoint_every": 200, "seed": 1})
+
     def test_start_writes_manifest_before_worker_starts(self):
         audio = self.root / "song.wav"
         audio.write_bytes(b"RIFF-test")
@@ -75,13 +85,16 @@ class TrainingBridgeTests(unittest.TestCase):
              patch.object(self.bridge, "_write_linux_json", side_effect=capture), \
              patch("training_bridge.threading.Thread") as thread:
             result = self.bridge.start(
-                {"name": "My Run", "dataset_name": "Dataset", "steps": 200, "rank": 64},
+                {"name": "My Run", "dataset_name": "Dataset", "steps": 200, "rank": 64, "learning_rate": "4e-5", "checkpoint_every": 50, "seed": 99},
                 [{"name": "song.wav", "path": str(audio), "caption": "medieval instrumental", "has_caption": True}],
             )
 
         self.assertEqual(result["status"], "queued")
         self.assertTrue(written["path"].endswith("/manifest.json"))
         self.assertEqual(written["value"]["training"]["artist_fraction"], 1.0)
+        self.assertEqual(written["value"]["training"]["learning_rate"], 4e-5)
+        self.assertEqual(written["value"]["training"]["checkpoint_every"], 50)
+        self.assertEqual(written["value"]["training"]["seed"], 99)
         self.assertEqual(written["value"]["dataset"]["files"][0]["caption"], "medieval instrumental")
         thread.return_value.start.assert_called_once()
 

@@ -65,6 +65,35 @@ def parse_training_line(line: str) -> dict:
     return {}
 
 
+def training_values(request: dict) -> dict:
+    """Validate the controls exposed in the Training Configuration panel."""
+    try:
+        steps = int(request.get("steps", 1000))
+        rank = int(request.get("rank", 64))
+        learning_rate = float(request.get("learning_rate", 6e-5))
+        checkpoint_every = int(request.get("checkpoint_every", min(200, steps)))
+        seed = int(request.get("seed", 1))
+    except (TypeError, ValueError) as exc:
+        raise ValueError("Training controls must contain valid numeric values.") from exc
+    if not 1 <= steps <= 100000:
+        raise ValueError("Training steps must be between 1 and 100,000.")
+    if not 8 <= rank <= 256 or rank % 8:
+        raise ValueError("LoRA rank must be a multiple of 8 between 8 and 256.")
+    if not 1e-7 <= learning_rate <= 1e-3:
+        raise ValueError("Learning rate must be between 1e-7 and 1e-3.")
+    if not 1 <= checkpoint_every <= steps:
+        raise ValueError("Checkpoint interval must be between 1 and the training step count.")
+    if not 0 <= seed <= 2_147_483_647:
+        raise ValueError("Seed must be between 0 and 2,147,483,647.")
+    return {
+        "steps": steps,
+        "rank": rank,
+        "learning_rate": learning_rate,
+        "checkpoint_every": checkpoint_every,
+        "seed": seed,
+    }
+
+
 class TrainingBridge:
     def __init__(self, app_root: Path, config_loader: Callable[[], dict], config_saver: Callable[[dict], None]):
         self.app_root = app_root
@@ -223,12 +252,9 @@ class TrainingBridge:
             if self._active and self._active.get("status") in {"validating", "staging", "preparing", "training", "stopping"}:
                 raise ValueError("Another training run is already active.")
 
-        steps = int(request.get("steps", 0))
-        rank = int(request.get("rank", 64))
-        if steps < 1 or steps > 100000:
-            raise ValueError("Training steps must be between 1 and 100,000.")
-        if rank not in {32, 64, 128}:
-            raise ValueError("LoRA rank must be 32, 64, or 128.")
+        controls = training_values(request)
+        steps = controls["steps"]
+        rank = controls["rank"]
         if not tracks:
             raise ValueError("The selected dataset has no supported audio tracks.")
         missing = [track["name"] for track in tracks if not track.get("has_caption") or not str(track.get("caption", "")).strip()]
@@ -285,12 +311,12 @@ class TrainingBridge:
             "training": {
                 "steps": steps,
                 "rank": rank,
-                "learning_rate": 6e-5,
+                "learning_rate": controls["learning_rate"],
                 "artist_fraction": 1.0,
                 "cursor_loss_weight": 0.08,
                 "gradient_accumulation": 2,
-                "checkpoint_every": min(200, steps),
-                "seed": 1,
+                "checkpoint_every": controls["checkpoint_every"],
+                "seed": controls["seed"],
             },
             "paths": {
                 "run_dir": run_dir,
