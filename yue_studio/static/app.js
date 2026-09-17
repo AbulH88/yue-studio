@@ -9,17 +9,7 @@ function renderProjects(){
 function renderTracks(){ $('tracks').innerHTML=demoTracks.length?demoTracks.map(t=>`<div class="track-row"><span>${t[0]}</span><b>${t[1]}</b><span class="format ${t[5]}">${t[2]}</span><span>${t[3]}</span><span class="status-pill ${t[4]==='Needs review'?'review':''}">${t[4]}</span><span class="mini-wave"></span><button class="play">▶</button></div>`).join(''):'<div class="empty-table">No audio files have been added to this project.</div>'; }
 function openProject(i){ $('projectsScreen').classList.add('hidden');$('detailScreen').classList.remove('hidden');$('crumbName').textContent=projects[i].name;$('projectName').textContent=projects[i].name;renderTracks(); }
 function showProjects(){ $('detailScreen').classList.add('hidden');$('projectsScreen').classList.remove('hidden');$('crumbName').textContent='Projects'; }
-document.querySelectorAll('.rail-item').forEach(b=>b.addEventListener('click',()=>{
-  const screen=b.dataset.screen;
-  if(screen==='projects'||screen==='home'){showProjects();return;}
-  if(!projects.length)return;
-  openProject(0);
-  if(screen==='datasets')showTab('datasets');
-  else if(screen==='training')showTab('runs');
-  else if(screen==='generate')showTab('generate');
-  else if(screen==='exports')showTab('checkpoints');
-  else if(screen==='models')showTab('models');
-}));
+document.querySelectorAll('.rail-item').forEach(b=>b.addEventListener('click',showProjects));
 function showTab(name){
   document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x.dataset.tab===name));
   document.querySelectorAll('.tab-screen').forEach(x=>x.classList.add('hidden-tab'));
