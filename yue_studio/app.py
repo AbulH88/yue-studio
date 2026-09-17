@@ -32,6 +32,7 @@ def load_config() -> dict:
         "dataset_path": "",
         "export_path": "./exports",
         "instrumental": True,
+        "datasets": [],
     }
 
 
@@ -97,7 +98,14 @@ class Handler(BaseHTTPRequestHandler):
             return
         if parsed.path == "/api/dataset":
             cfg = load_config()
-            self.send_json({"tracks": scan_dataset(cfg.get("dataset_path", ""))})
+            datasets = cfg.get("datasets", [])
+            if not datasets and cfg.get("dataset_path"):
+                datasets = [{"name": Path(cfg["dataset_path"]).name or "Dataset", "path": cfg["dataset_path"]}]
+            result = []
+            for dataset in datasets:
+                tracks = scan_dataset(dataset.get("path", ""))
+                result.append({**dataset, "tracks": tracks, "track_count": len(tracks)})
+            self.send_json({"datasets": result})
             return
         if parsed.path.startswith("/static/"):
             file_path = STATIC / parsed.path.removeprefix("/static/")
@@ -126,6 +134,29 @@ class Handler(BaseHTTPRequestHandler):
                 config.update(data)
                 save_config(config)
                 self.send_json(config)
+                return
+            if parsed.path == "/api/dataset":
+                name = str(data.get("name", "")).strip()
+                path_text = str(data.get("path", "")).strip()
+                path = Path(path_text).expanduser()
+                if not name:
+                    raise ValueError("Dataset name is required.")
+                if not path.is_dir():
+                    raise ValueError("The selected dataset folder does not exist.")
+                tracks = scan_dataset(str(path))
+                if not tracks:
+                    raise ValueError("No supported audio files were found in that folder.")
+                config = load_config()
+                datasets = config.setdefault("datasets", [])
+                existing = next((item for item in datasets if item.get("name") == name), None)
+                entry = {"name": name, "path": str(path.resolve())}
+                if existing:
+                    existing.update(entry)
+                else:
+                    datasets.append(entry)
+                config["dataset_path"] = str(path.resolve())
+                save_config(config)
+                self.send_json({"ok": True, "dataset": {**entry, "tracks": tracks, "track_count": len(tracks)}})
                 return
             if parsed.path == "/api/caption":
                 config = load_config()
