@@ -11,6 +11,8 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import urlparse
 
+from training_bridge import TrainingBridge
+
 
 ROOT = Path(__file__).resolve().parent
 STATIC = ROOT / "static"
@@ -38,6 +40,9 @@ def load_config() -> dict:
 
 def save_config(config: dict) -> None:
     CONFIG_PATH.write_text(json.dumps(config, indent=2), encoding="utf-8")
+
+
+TRAINING = TrainingBridge(ROOT, load_config, save_config)
 
 
 def ffprobe_duration(path: Path) -> float | None:
@@ -107,6 +112,15 @@ class Handler(BaseHTTPRequestHandler):
                 result.append({**dataset, "tracks": tracks, "track_count": len(tracks)})
             self.send_json({"datasets": result})
             return
+        if parsed.path == "/api/training/settings":
+            self.send_json(TRAINING.settings())
+            return
+        if parsed.path == "/api/training/status":
+            self.send_json(TRAINING.status())
+            return
+        if parsed.path == "/api/training/runs":
+            self.send_json({"runs": TRAINING.list_runs()})
+            return
         if parsed.path.startswith("/static/"):
             file_path = STATIC / parsed.path.removeprefix("/static/")
         else:
@@ -169,8 +183,32 @@ class Handler(BaseHTTPRequestHandler):
                 path.write_text(data.get("caption", "").strip() + "\n", encoding="utf-8")
                 self.send_json({"ok": True})
                 return
+            if parsed.path == "/api/training/settings":
+                self.send_json(TRAINING.save_settings(data))
+                return
+            if parsed.path == "/api/training/autodetect":
+                detected = TRAINING.autodetect(str(data.get("wsl_distribution", "Ubuntu")))
+                self.send_json(TRAINING.save_settings(detected))
+                return
+            if parsed.path == "/api/training/preflight":
+                self.send_json(TRAINING.preflight(data or None))
+                return
+            if parsed.path == "/api/training/start":
+                dataset_path = str(data.get("dataset_path", ""))
+                if not dataset_path:
+                    raise ValueError("Choose a dataset before starting training.")
+                tracks = scan_dataset(dataset_path)
+                request = {
+                    **data,
+                    "dataset_name": str(data.get("dataset_name") or Path(dataset_path).name or "Dataset"),
+                }
+                self.send_json(TRAINING.start(request, tracks), HTTPStatus.ACCEPTED)
+                return
+            if parsed.path == "/api/training/stop":
+                self.send_json(TRAINING.stop())
+                return
             self.send_error(HTTPStatus.NOT_FOUND)
-        except (ValueError, KeyError, OSError) as exc:
+        except (ValueError, KeyError, OSError, RuntimeError, subprocess.SubprocessError) as exc:
             self.send_json({"error": str(exc)}, HTTPStatus.BAD_REQUEST)
 
 
@@ -179,7 +217,8 @@ def main():
     server = ThreadingHTTPServer(("127.0.0.1", port), Handler)
     url = f"http://127.0.0.1:{port}"
     print(f"YuE Studio running at {url}")
-    threading.Timer(0.35, lambda: webbrowser.open(url)).start()
+    if os.environ.get("YUE_STUDIO_NO_BROWSER") != "1":
+        threading.Timer(0.35, lambda: webbrowser.open(url)).start()
     try:
         server.serve_forever()
     except KeyboardInterrupt:
