@@ -1,39 +1,34 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>YuE Studio</title>
-  <link rel="stylesheet" href="/static/styles.css" />
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>YuE Studio</title><link rel="stylesheet" href="/static/styles.css">
 </head>
 <body>
-  <div class="app-shell">
-    <aside class="sidebar">
-      <div class="brand"><div class="brand-mark">♪</div><div><b>YuE Studio</b><small>music beyond time</small></div></div>
-      <nav>
-        <button class="nav-item active" data-view="overview">◈ <span>Projects</span></button>
-        <button class="nav-item" data-view="dataset">▦ <span>Dataset</span></button>
-        <button class="nav-item" data-view="training">▥ <span>Training</span></button>
-        <button class="nav-item" data-view="generation">✦ <span>Generation</span></button>
-        <button class="nav-item" data-view="checkpoints">◇ <span>Checkpoints</span></button>
-        <button class="nav-item" data-view="settings">⚙ <span>Settings</span></button>
-      </nav>
-      <div class="sidebar-footer">ANCIENT SOUNDS<br><em>NEW HORIZONS</em></div>
-    </aside>
-    <main class="main">
-      <header class="topbar"><div><span class="eyebrow">LOCAL PROJECT</span><h1 id="projectTitle">Medieval Echoes</h1></div><div class="top-actions"><span class="status"><i></i> GPU READY</span><button class="gold-button" id="exportButton">Export LoRA</button></div></header>
-      <section id="overview" class="view active-view">
-        <div class="hero-row"><div><span class="eyebrow">INSTRUMENTAL LORA LAB</span><h2>Shape sound<br><span>one track at a time.</span></h2><p>Analyze your music, prepare captions, train YuE2, and export a ComfyUI-ready LoRA.</p></div><div class="hero-emblem">♩<small>YUE2</small></div></div>
-        <div class="stats"><div class="stat-card"><span>DATASET</span><strong id="trackCount">0</strong><small>tracks ready for review</small></div><div class="stat-card"><span>CAPTION ENGINE</span><strong>ACE-Step</strong><small>local audio analysis</small></div><div class="stat-card"><span>TRAINING</span><strong>Ready</strong><small>YuE2 Instrumental preset</small></div></div>
-        <div class="panel-grid"><div class="panel large"><div class="panel-title"><h3>Dataset preparation</h3><span class="badge">REVIEW FIRST</span></div><p>Import a folder and let the local captioner describe genre, instruments, vocals, mood, tempo, and production.</p><button class="gold-button" data-go="dataset">Open Dataset Review</button></div><div class="panel"><div class="panel-title"><h3>Export destination</h3><span class="folder-icon">⌂</span></div><p id="exportPath">./exports</p><button class="subtle-button" data-go="settings">Configure path</button></div></div>
-      </section>
-      <section id="dataset" class="view"><div class="section-heading"><div><span class="eyebrow">DATASET WORKSHOP</span><h2>Caption your collection</h2><p>Every caption stays editable before training.</p></div><button class="gold-button" id="analyzeAll">Analyze missing captions</button></div><div class="dataset-toolbar"><label>Audio folder <input id="datasetPath" placeholder="C:\\Music\\My Album" /></label><button class="subtle-button" id="scanButton">Scan folder</button><span id="scanStatus"></span></div><div class="track-list" id="trackList"><div class="empty-state">Choose an audio folder to begin.</div></div></section>
-      <section id="training" class="view"><div class="section-heading"><div><span class="eyebrow">YUЕ2 TRAINING</span><h2>Instrumental LoRA</h2><p>Safe defaults for a clean first run.</p></div><button class="gold-button">Start training</button></div><div class="training-grid"><div class="panel"><h3>Training preset</h3><div class="setting"><span>Model</span><b>YuE2-3B</b></div><div class="setting"><span>Target</span><b>Instrumental LoRA</b></div><div class="setting"><span>Rank</span><b>64</b></div><div class="setting"><span>Steps</span><b>1,000</b></div><div class="setting"><span>Dataset only</span><b class="green">ON</b></div></div><div class="panel chart-panel"><h3>Training progress</h3><div class="fake-chart"><span style="height:82%"></span><span style="height:65%"></span><span style="height:52%"></span><span style="height:41%"></span><span style="height:31%"></span><span style="height:25%"></span><span style="height:18%"></span><span style="height:12%"></span></div><div class="chart-labels"><span>0</span><span>200</span><span>400</span><span>600</span><span>800</span><span>1000</span></div></div></div></section>
-      <section id="generation" class="view"><div class="section-heading"><div><span class="eyebrow">LISTENING ROOM</span><h2>Generate and compare</h2><p>Test each checkpoint with the same prompt and seed.</p></div></div><div class="compare-grid"><div class="audio-card"><h3>Step 200</h3><div class="waveform purple"></div><button class="play">▶</button><span>Not selected</span></div><div class="audio-card selected"><h3>Step 1000</h3><div class="waveform gold-wave"></div><button class="play">▶</button><span>Recommended test</span></div></div></section>
-      <section id="checkpoints" class="view"><div class="section-heading"><div><span class="eyebrow">CHECKPOINT LIBRARY</span><h2>Your saved steps</h2><p>Export only the checkpoint you trust.</p></div></div><div class="checkpoint-table"><div class="table-head"><span>CHECKPOINT</span><span>STATUS</span><span>FORMAT</span><span>ACTION</span></div><div class="table-row"><b>step-1000</b><span class="good-pill">BEST TEST</span><span>PT → SAFETENSORS</span><button class="subtle-button">Export</button></div><div class="table-row"><b>step-200</b><span class="muted-pill">EARLY</span><span>PT → SAFETENSORS</span><button class="subtle-button">Export</button></div></div></section>
-      <section id="settings" class="view"><div class="section-heading"><div><span class="eyebrow">STUDIO SETTINGS</span><h2>Make it yours</h2><p>All paths remain local and portable for GitHub.</p></div><button class="gold-button" id="saveSettings">Save settings</button></div><div class="settings-form panel"><label>Project name<input id="projectName" /></label><label>Project type<select id="projectType"><option>General Music</option><option>Instrumental Music</option><option>Medieval / Fantasy</option><option>Electronic</option><option>Orchestral</option></select></label><label>Optional trigger word<input id="triggerWord" placeholder="Leave blank for no trigger" /></label><label>Export folder<input id="exportFolder" placeholder="./exports" /></label><label class="check"><input type="checkbox" id="instrumental" checked /> Instrumental project (flag vocal terms during review)</label></div></section>
-    </main>
-  </div>
-  <script src="/static/app.js"></script>
-</body>
-</html>
+<div class="shell">
+  <aside class="rail">
+    <div class="logo"><div class="logo-mark">♫</div><div><strong>YuE Studio</strong><small>MUSIC BEYOND TIME</small></div></div>
+    <nav><button class="rail-item" data-screen="home">⌂ <span>Home</span></button><button class="rail-item active" data-screen="projects">▣ <span>Projects</span></button><button class="rail-item" data-screen="models">◈ <span>Models</span></button><button class="rail-item" data-screen="datasets">▤ <span>Datasets</span></button><button class="rail-item" data-screen="training">♜ <span>Training</span></button><button class="rail-item" data-screen="generate">✦ <span>Generate</span></button><button class="rail-item" data-screen="exports">↗ <span>Exports</span></button></nav>
+    <div class="rail-bottom"><div class="candle">♨</div><small>Create<br>Preserve<br>Reimagine</small></div>
+  </aside>
+  <main class="workspace">
+    <header class="topbar"><div class="crumb">☷ &nbsp; Projects &nbsp;/&nbsp; <b id="crumbName">Medieval Echoes</b></div><div class="window-actions">— &nbsp; □ &nbsp; ×</div></header>
+    <section id="projectsScreen" class="screen">
+      <div class="project-head"><div><span class="eyebrow">PROJECT LIBRARY</span><h1>Your Projects</h1><p>Create, train, and refine your own musical world.</p></div><button class="gold-button" id="newProject">＋ Create New Project</button></div>
+      <div class="project-grid" id="projectGrid"></div>
+    </section>
+    <section id="detailScreen" class="screen hidden">
+      <div class="project-banner"><div class="project-title"><div class="project-thumb">♩</div><div><h1 id="projectName">Medieval Echoes</h1><p>Authentic medieval atmospheres, instruments, and soundscapes</p></div></div><div class="quote">“Sounds from another time.<br>Trained for new worlds.”</div></div>
+      <div class="tabs"><button class="tab" data-tab="overview">Overview</button><button class="tab active" data-tab="datasets">Datasets</button><button class="tab" data-tab="runs">Training Runs</button><button class="tab" data-tab="checkpoints">Checkpoints</button><button class="tab" data-tab="generate">Generate</button></div>
+      <div id="datasetsTab" class="tab-screen">
+        <div class="content-grid"><div>
+          <div class="section-title"><div><h2>Datasets</h2><p>Manage the audio datasets used in this project.</p></div><button class="dark-gold" id="addDataset">＋ Add Dataset</button></div>
+          <div class="dataset-cards"><article class="dataset-card selected"><div class="dataset-art castle">♜</div><div><h3>Medieval Collection</h3><p>Chants, lutes, hurdy-gurdies,<br>ambient spaces</p><small>48 tracks &nbsp;|&nbsp; 3.2 GB</small></div><b>•••</b></article><article class="dataset-card"><div class="dataset-art tavern">♬</div><div><h3>Dark Tavern</h3><p>Tavern music, crowd ambience,<br>wooden interiors</p><small>32 tracks &nbsp;|&nbsp; 1.8 GB</small></div><b>•••</b></article></div>
+          <div class="tracks-head"><h2>Tracks in Medieval Collection</h2><span>48 tracks</span></div><div class="track-table"><div class="thead"><span>#</span><span>Filename</span><span>Format</span><span>Duration</span><span>Caption Status</span><span>Waveform</span><span>Play</span></div><div id="tracks"></div></div>
+        </div><aside class="training-card"><h2>New Training Run</h2><p>Configure a training run using your project datasets.</p><label>Dataset<select><option>Medieval Collection</option><option>Dark Tavern</option></select></label><label>Base Model<select><option>YuE2</option></select><small>General audio model (recommended)</small></label><label>Trainer<select><option>LoRA (YuE2 AR)</option><option>Creator trainer</option></select><small>Parameter-efficient fine-tuning</small></label><label>Training Steps</label><div class="steps"><button data-steps="200">200<small>Quick Test</small></button><button class="chosen" data-steps="1000">1000<small>Standard</small></button><button data-steps="1500">1500<small>Extended</small></button></div><label class="rank-label">LoRA Rank <select><option>64</option><option>32</option><option>128</option></select></label><button class="start-button">▶ &nbsp; Start Training</button></aside></div>
+        <div class="checkpoints"><div class="section-title"><div><h2>Checkpoints</h2><p>Your trained model checkpoints for this project.</p></div><button class="dark-gold">⇧ &nbsp; Export ComfyUI</button></div><div class="checkpoint-row"><article><div class="checkpoint-art castle">♜</div><div><h3>Step 200</h3><p>medieval_echoes_step200.safetensors</p><small>312 MB &nbsp;|&nbsp; 2024-05-15 14:22</small><br><span class="tag muted">Early concepts</span></div><button class="download">⇩</button></article><article class="preferred"><div class="checkpoint-art tavern">♬</div><div><h3>Step 1000</h3><p>medieval_echoes_step1000.safetensors</p><small>1.4 GB &nbsp;|&nbsp; 2024-05-11 09:18</small><br><span class="tag good">Preferred</span><span class="tag">Balanced quality</span></div><button class="download">⇩</button></article><article class="empty-checkpoint">＋<br><small>More checkpoints will appear here<br>as training runs complete.</small></article></div></div>
+      </div>
+    </section>
+  </main>
+</div><script src="/static/app.js"></script>
+</body></html>

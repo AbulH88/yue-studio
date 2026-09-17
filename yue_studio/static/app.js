@@ -1,74 +1,22 @@
 const $ = (id) => document.getElementById(id);
-let config = {};
-let tracks = [];
-
-async function api(url, options = {}) {
-  const response = await fetch(url, {headers: {'Content-Type': 'application/json'}, ...options});
-  return response.json();
+const projects = [
+  {name:'Medieval Echoes', subtitle:'ANCIENT SOUNDS, NEW HORIZONS', art:'art-castle', datasets:3, tracks:14, checkpoint:'Step 1000', status:'Ready'},
+  {name:'Dark Ambient', subtitle:'SHADOWS IN SOUND', art:'art-dark', datasets:2, tracks:8, checkpoint:'Step 800', status:'Training'},
+  {name:'Cinematic Strings', subtitle:'EMOTION IN EVERY NOTE', art:'art-strings', datasets:1, tracks:22, checkpoint:'Step 1500', status:'Ready'}
+];
+const demoTracks = [
+  ['01','monastery_chant_01.wav','WAV','02:15','Captioned','wav'],['02','lute_melody_ancient.mp3','MP3','01:42','Captioned','mp3'],['03','tavern_crowd_loop.wav','WAV','03:28','Needs review','wav'],['04','hurdy_gurdy_phrase.mp3','MP3','01:06','Captioned','mp3'],['05','cathedral_ambience.flac','FLAC','04:12','Needs review','flac'],['06','wooden_tavern_interior.wav','WAV','02:37','Captioned','wav']
+];
+function renderProjects(){
+  $('projectGrid').innerHTML=projects.map((p,i)=>`<article class="project-card" data-project="${i}"><div class="project-art ${p.art}">${i===0?'♜':i===1?'☾':'♬'}</div><div class="project-card-body"><h3>${p.name}</h3><em>${p.subtitle}</em><div class="card-rule"></div><div class="project-meta"><div><span>DATASETS</span>${p.datasets} datasets</div><div><span>LAST CHECKPOINT</span>${p.checkpoint}</div><div><span>TRACKS</span>${p.tracks} tracks</div><div><span>LAST ACTIVITY</span>Today, 14:32</div></div><b class="project-status ${p.status==='Training'?'training':''}">${p.status}</b></div></article>`).join('');
+  document.querySelectorAll('.project-card').forEach(c=>c.addEventListener('click',()=>openProject(Number(c.dataset.project))));
 }
-
-function show(view) {
-  document.querySelectorAll('.view').forEach((el) => el.classList.toggle('active-view', el.id === view));
-  document.querySelectorAll('.nav-item').forEach((el) => el.classList.toggle('active', el.dataset.view === view));
-}
-
-function renderTracks() {
-  $('trackCount').textContent = tracks.length;
-  const host = $('trackList');
-  if (!tracks.length) { host.innerHTML = '<div class="empty-state">Choose an audio folder to begin.</div>'; return; }
-  host.innerHTML = tracks.map((t, i) => `<div class="track-row" data-index="${i}">
-    <div><b>${escapeHtml(t.name)}</b><small>${t.duration ? `${t.duration}s` : 'duration unavailable'} · ${t.has_caption ? 'caption found' : 'needs caption'}</small></div>
-    <textarea class="caption" placeholder="Analyze this track to create a caption">${escapeHtml(t.caption || '')}</textarea>
-    <button class="subtle-button analyze-one">${t.caption ? 'Regenerate' : 'Analyze'}</button>
-  </div>`).join('');
-  host.querySelectorAll('.analyze-one').forEach((button) => button.addEventListener('click', async (event) => {
-    const row = event.target.closest('.track-row'); const track = tracks[Number(row.dataset.index)];
-    const result = await api('/api/caption', {method: 'POST', body: JSON.stringify({track})});
-    row.querySelector('.caption').value = result.caption;
-    track.caption = result.caption;
-  }));
-  host.querySelectorAll('textarea').forEach((textarea) => textarea.addEventListener('change', async (event) => {
-    const row = event.target.closest('.track-row'); const track = tracks[Number(row.dataset.index)];
-    track.caption = event.target.value;
-    await api('/api/caption/save', {method: 'POST', body: JSON.stringify({caption_path: track.caption_path, caption: track.caption})});
-  }));
-}
-
-function escapeHtml(value) { return String(value).replace(/[&<>'"]/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c])); }
-
-async function scan() {
-  config.dataset_path = $('datasetPath').value.trim();
-  await api('/api/config', {method: 'POST', body: JSON.stringify(config)});
-  tracks = (await api('/api/dataset')).tracks || [];
-  $('scanStatus').textContent = `${tracks.length} track${tracks.length === 1 ? '' : 's'} found`;
-  renderTracks();
-}
-
-async function load() {
-  config = await api('/api/config');
-  $('projectTitle').textContent = config.project_name || 'Untitled Music Project';
-  $('projectName').value = config.project_name || '';
-  $('projectType').value = config.project_type || 'General Music';
-  $('triggerWord').value = config.trigger_word || '';
-  $('exportFolder').value = config.export_path || './exports';
-  $('datasetPath').value = config.dataset_path || '';
-  $('instrumental').checked = config.instrumental !== false;
-  $('exportPath').textContent = config.export_path || './exports';
-  tracks = (await api('/api/dataset')).tracks || [];
-  renderTracks();
-}
-
-document.querySelectorAll('.nav-item').forEach((button) => button.addEventListener('click', () => show(button.dataset.view)));
-document.querySelectorAll('[data-go]').forEach((button) => button.addEventListener('click', () => show(button.dataset.go)));
-$('scanButton').addEventListener('click', scan);
-$('analyzeAll').addEventListener('click', async () => { for (const row of document.querySelectorAll('.analyze-one')) row.click(); });
-$('saveSettings').addEventListener('click', async () => {
-  config.project_name = $('projectName').value.trim() || 'Untitled Music Project';
-  config.project_type = $('projectType').value; config.trigger_word = $('triggerWord').value.trim();
-  config.export_path = $('exportFolder').value.trim() || './exports'; config.instrumental = $('instrumental').checked;
-  await api('/api/config', {method: 'POST', body: JSON.stringify(config)});
-  $('projectTitle').textContent = config.project_name; $('exportPath').textContent = config.export_path;
-  alert('Studio settings saved locally.');
-});
-$('exportButton').addEventListener('click', () => show('checkpoints'));
-load();
+function renderTracks(){ $('tracks').innerHTML=demoTracks.map(t=>`<div class="track-row"><span>${t[0]}</span><b>${t[1]}</b><span class="format ${t[5]}">${t[2]}</span><span>${t[3]}</span><span class="status-pill ${t[4]==='Needs review'?'review':''}">${t[4]}</span><span class="mini-wave"></span><button class="play">▶</button></div>`).join(''); }
+function openProject(i){ $('projectsScreen').classList.add('hidden');$('detailScreen').classList.remove('hidden');$('crumbName').textContent=projects[i].name;$('projectName').textContent=projects[i].name;renderTracks(); }
+function showProjects(){ $('detailScreen').classList.add('hidden');$('projectsScreen').classList.remove('hidden');$('crumbName').textContent='Projects'; }
+document.querySelectorAll('.rail-item').forEach(b=>b.addEventListener('click',()=>{ if(b.dataset.screen==='projects'||b.dataset.screen==='home')showProjects(); }));
+document.querySelectorAll('.tab').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));b.classList.add('active');if(b.dataset.tab!=='datasets')alert(`${b.textContent} view is coming next.`);}));
+document.querySelectorAll('.steps button').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('.steps button').forEach(x=>x.classList.remove('chosen'));b.classList.add('chosen');}));
+$('newProject').addEventListener('click',()=>{const name=prompt('Project name');if(name){projects.push({name,subtitle:'A NEW MUSICAL WORLD',art:'art-castle',datasets:0,tracks:0,checkpoint:'None',status:'Ready'});renderProjects();}});
+$('addDataset').addEventListener('click',()=>alert('Dataset creation will let you choose a name and add MP3, WAV, FLAC, or M4A files.'));
+renderProjects();
