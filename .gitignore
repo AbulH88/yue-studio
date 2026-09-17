@@ -1,0 +1,9 @@
+yue_studio/studio.config.json
+yue_studio/projects/
+yue_studio/exports/
+__pycache__/
+*.pyc
+.venv/
+models/
+datasets/
+outputs/

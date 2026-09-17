@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>YuE Studio</title>
+  <link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand"><div class="brand-mark">♪</div><div><b>YuE Studio</b><small>music beyond time</small></div></div>
+      <nav>
+        <button class="nav-item active" data-view="overview">◈ <span>Projects</span></button>
+        <button class="nav-item" data-view="dataset">▦ <span>Dataset</span></button>
+        <button class="nav-item" data-view="training">▥ <span>Training</span></button>
+        <button class="nav-item" data-view="generation">✦ <span>Generation</span></button>
+        <button class="nav-item" data-view="checkpoints">◇ <span>Checkpoints</span></button>
+        <button class="nav-item" data-view="settings">⚙ <span>Settings</span></button>
+      </nav>
+      <div class="sidebar-footer">ANCIENT SOUNDS<br><em>NEW HORIZONS</em></div>
+    </aside>
+    <main class="main">
+      <header class="topbar"><div><span class="eyebrow">LOCAL PROJECT</span><h1 id="projectTitle">Medieval Echoes</h1></div><div class="top-actions"><span class="status"><i></i> GPU READY</span><button class="gold-button" id="exportButton">Export LoRA</button></div></header>
+      <section id="overview" class="view active-view">
+        <div class="hero-row"><div><span class="eyebrow">INSTRUMENTAL LORA LAB</span><h2>Shape sound<br><span>one track at a time.</span></h2><p>Analyze your music, prepare captions, train YuE2, and export a ComfyUI-ready LoRA.</p></div><div class="hero-emblem">♩<small>YUE2</small></div></div>
+        <div class="stats"><div class="stat-card"><span>DATASET</span><strong id="trackCount">0</strong><small>tracks ready for review</small></div><div class="stat-card"><span>CAPTION ENGINE</span><strong>ACE-Step</strong><small>local audio analysis</small></div><div class="stat-card"><span>TRAINING</span><strong>Ready</strong><small>YuE2 Instrumental preset</small></div></div>
+        <div class="panel-grid"><div class="panel large"><div class="panel-title"><h3>Dataset preparation</h3><span class="badge">REVIEW FIRST</span></div><p>Import a folder and let the local captioner describe genre, instruments, vocals, mood, tempo, and production.</p><button class="gold-button" data-go="dataset">Open Dataset Review</button></div><div class="panel"><div class="panel-title"><h3>Export destination</h3><span class="folder-icon">⌂</span></div><p id="exportPath">./exports</p><button class="subtle-button" data-go="settings">Configure path</button></div></div>
+      </section>
+      <section id="dataset" class="view"><div class="section-heading"><div><span class="eyebrow">DATASET WORKSHOP</span><h2>Caption your collection</h2><p>Every caption stays editable before training.</p></div><button class="gold-button" id="analyzeAll">Analyze missing captions</button></div><div class="dataset-toolbar"><label>Audio folder <input id="datasetPath" placeholder="C:\\Music\\My Album" /></label><button class="subtle-button" id="scanButton">Scan folder</button><span id="scanStatus"></span></div><div class="track-list" id="trackList"><div class="empty-state">Choose an audio folder to begin.</div></div></section>
+      <section id="training" class="view"><div class="section-heading"><div><span class="eyebrow">YUЕ2 TRAINING</span><h2>Instrumental LoRA</h2><p>Safe defaults for a clean first run.</p></div><button class="gold-button">Start training</button></div><div class="training-grid"><div class="panel"><h3>Training preset</h3><div class="setting"><span>Model</span><b>YuE2-3B</b></div><div class="setting"><span>Target</span><b>Instrumental LoRA</b></div><div class="setting"><span>Rank</span><b>64</b></div><div class="setting"><span>Steps</span><b>1,000</b></div><div class="setting"><span>Dataset only</span><b class="green">ON</b></div></div><div class="panel chart-panel"><h3>Training progress</h3><div class="fake-chart"><span style="height:82%"></span><span style="height:65%"></span><span style="height:52%"></span><span style="height:41%"></span><span style="height:31%"></span><span style="height:25%"></span><span style="height:18%"></span><span style="height:12%"></span></div><div class="chart-labels"><span>0</span><span>200</span><span>400</span><span>600</span><span>800</span><span>1000</span></div></div></div></section>
+      <section id="generation" class="view"><div class="section-heading"><div><span class="eyebrow">LISTENING ROOM</span><h2>Generate and compare</h2><p>Test each checkpoint with the same prompt and seed.</p></div></div><div class="compare-grid"><div class="audio-card"><h3>Step 200</h3><div class="waveform purple"></div><button class="play">▶</button><span>Not selected</span></div><div class="audio-card selected"><h3>Step 1000</h3><div class="waveform gold-wave"></div><button class="play">▶</button><span>Recommended test</span></div></div></section>
+      <section id="checkpoints" class="view"><div class="section-heading"><div><span class="eyebrow">CHECKPOINT LIBRARY</span><h2>Your saved steps</h2><p>Export only the checkpoint you trust.</p></div></div><div class="checkpoint-table"><div class="table-head"><span>CHECKPOINT</span><span>STATUS</span><span>FORMAT</span><span>ACTION</span></div><div class="table-row"><b>step-1000</b><span class="good-pill">BEST TEST</span><span>PT → SAFETENSORS</span><button class="subtle-button">Export</button></div><div class="table-row"><b>step-200</b><span class="muted-pill">EARLY</span><span>PT → SAFETENSORS</span><button class="subtle-button">Export</button></div></div></section>
+      <section id="settings" class="view"><div class="section-heading"><div><span class="eyebrow">STUDIO SETTINGS</span><h2>Make it yours</h2><p>All paths remain local and portable for GitHub.</p></div><button class="gold-button" id="saveSettings">Save settings</button></div><div class="settings-form panel"><label>Project name<input id="projectName" /></label><label>Project type<select id="projectType"><option>General Music</option><option>Instrumental Music</option><option>Medieval / Fantasy</option><option>Electronic</option><option>Orchestral</option></select></label><label>Optional trigger word<input id="triggerWord" placeholder="Leave blank for no trigger" /></label><label>Export folder<input id="exportFolder" placeholder="./exports" /></label><label class="check"><input type="checkbox" id="instrumental" checked /> Instrumental project (flag vocal terms during review)</label></div></section>
+    </main>
+  </div>
+  <script src="/static/app.js"></script>
+</body>
+</html>
