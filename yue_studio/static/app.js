@@ -10,7 +10,9 @@ function renderTracks(){ $('tracks').innerHTML=demoTracks.length?demoTracks.map(
 function openProject(i){ $('projectsScreen').classList.add('hidden');$('detailScreen').classList.remove('hidden');$('crumbName').textContent=projects[i].name;$('projectName').textContent=projects[i].name;renderTracks(); }
 function showProjects(){ $('detailScreen').classList.add('hidden');$('projectsScreen').classList.remove('hidden');$('crumbName').textContent='Projects'; }
 document.querySelectorAll('.rail-item').forEach(b=>b.addEventListener('click',()=>{ if(b.dataset.screen==='projects'||b.dataset.screen==='home')showProjects(); }));
-document.querySelectorAll('.tab').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));b.classList.add('active');if(b.dataset.tab!=='datasets')alert(`${b.textContent} view is coming next.`);}));
+function showTab(name){document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x.dataset.tab===name));document.querySelectorAll('.tab-screen').forEach(x=>x.classList.add('hidden-tab'));const panel=$(name==='datasets'?'datasetsTab':name==='runs'?'runsTab':name==='checkpoints'?'checkpointsTab':'generateTab');if(panel)panel.classList.remove('hidden-tab');}
+document.querySelectorAll('.tab').forEach(b=>b.addEventListener('click',()=>showTab(b.dataset.tab)));
+document.querySelectorAll('[data-jump]').forEach(b=>b.addEventListener('click',()=>showTab(b.dataset.jump)));
 document.querySelectorAll('.steps button').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('.steps button').forEach(x=>x.classList.remove('chosen'));b.classList.add('chosen');}));
 document.querySelectorAll('.steps button').forEach(b=>b.addEventListener('click',()=>{const input=$('customSteps');if(input)input.value=b.dataset.steps;}));
 $('newProject').addEventListener('click',()=>{const name=prompt('Project name');if(name){projects.push({name,subtitle:'A NEW MUSICAL WORLD',art:'art-castle',datasets:0,tracks:0,checkpoint:'None',status:'Ready'});renderProjects();}});
