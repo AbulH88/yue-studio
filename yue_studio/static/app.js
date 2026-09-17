@@ -18,6 +18,9 @@ function showProjects(){ $('detailScreen').classList.add('hidden');$('projectsSc
 document.querySelectorAll('.rail-item').forEach(b=>b.addEventListener('click',()=>{ if(b.dataset.screen==='projects'||b.dataset.screen==='home')showProjects(); }));
 document.querySelectorAll('.tab').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));b.classList.add('active');if(b.dataset.tab!=='datasets')alert(`${b.textContent} view is coming next.`);}));
 document.querySelectorAll('.steps button').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('.steps button').forEach(x=>x.classList.remove('chosen'));b.classList.add('chosen');}));
+document.querySelectorAll('.steps button').forEach(b=>b.addEventListener('click',()=>{const input=$('customSteps');if(input)input.value=b.dataset.steps;}));
 $('newProject').addEventListener('click',()=>{const name=prompt('Project name');if(name){projects.push({name,subtitle:'A NEW MUSICAL WORLD',art:'art-castle',datasets:0,tracks:0,checkpoint:'None',status:'Ready'});renderProjects();}});
 $('addDataset').addEventListener('click',()=>alert('Dataset creation will let you choose a name and add MP3, WAV, FLAC, or M4A files.'));
+if($('applySteps'))$('applySteps').addEventListener('click',()=>{const value=Number($('customSteps').value);if(!Number.isInteger(value)||value<1){alert('Training steps must be a whole number greater than 0.');return;}document.querySelectorAll('.steps button').forEach(x=>x.classList.remove('chosen'));alert(`Training steps set to ${value}.`);});
+if($('startTraining'))$('startTraining').addEventListener('click',()=>{const value=Number($('customSteps').value);if(!Number.isInteger(value)||value<1){alert('Enter a valid number of training steps first.');return;}alert(`Training run configured for ${value} steps. The real WSL2 trainer connection is the next integration.`);});
 renderProjects();
