@@ -58,22 +58,89 @@ def ffprobe_duration(path: Path) -> float | None:
 
 
 def scan_dataset(path_text: str) -> list[dict]:
-    path = Path(path_text).expanduser()
-    if not path.is_dir():
-        return []
+    return scan_sources([{"type": "folder", "path": path_text}])
+
+
+def normalize_sources(raw_sources: object) -> list[dict]:
+    if not isinstance(raw_sources, list):
+        raise ValueError("Dataset sources must be a list.")
+    normalized = []
+    seen = set()
+    for source in raw_sources:
+        if not isinstance(source, dict):
+            raise ValueError("Each dataset source must include a type and path.")
+        source_type = str(source.get("type", "")).lower()
+        path_text = str(source.get("path", "")).strip()
+        if source_type not in {"file", "folder"} or not path_text:
+            raise ValueError("Each source must be a file or folder with a path.")
+        path = Path(path_text).expanduser()
+        if source_type == "file" and not path.is_file():
+            raise ValueError(f"Selected file no longer exists: {path}")
+        if source_type == "folder" and not path.is_dir():
+            raise ValueError(f"Selected folder no longer exists: {path}")
+        resolved = str(path.resolve())
+        key = (source_type, resolved.casefold())
+        if key not in seen:
+            normalized.append({"type": source_type, "path": resolved})
+            seen.add(key)
+    return normalized
+
+
+def scan_sources(raw_sources: object) -> list[dict]:
+    sources = normalize_sources(raw_sources)
     tracks = []
-    for audio in sorted(path.rglob("*")):
-        if audio.is_file() and audio.suffix.lower() in SUPPORTED:
+    seen_files = set()
+    for source in sources:
+        root = Path(source["path"])
+        candidates = [root] if source["type"] == "file" else sorted(root.rglob("*"))
+        for audio in candidates:
+            if not audio.is_file() or audio.suffix.lower() not in SUPPORTED:
+                continue
+            resolved = str(audio.resolve())
+            if resolved.casefold() in seen_files:
+                continue
+            seen_files.add(resolved.casefold())
             caption_path = audio.with_suffix(".txt")
             tracks.append({
                 "name": audio.name,
-                "path": str(audio),
+                "path": resolved,
                 "caption_path": str(caption_path),
                 "caption": caption_path.read_text(encoding="utf-8", errors="replace").strip() if caption_path.exists() else "",
                 "duration": ffprobe_duration(audio),
                 "has_caption": caption_path.exists(),
             })
+    tracks.sort(key=lambda item: (item["name"].casefold(), item["path"].casefold()))
     return tracks
+
+
+def dataset_sources(dataset: dict) -> list[dict]:
+    sources = dataset.get("sources")
+    if isinstance(sources, list):
+        return sources
+    path = str(dataset.get("path", "")).strip()
+    return [{"type": "folder", "path": path}] if path else []
+
+
+def choose_sources(kind: str) -> list[dict]:
+    try:
+        import tkinter as tk
+        from tkinter import filedialog
+    except ImportError as exc:
+        raise RuntimeError("Windows file picker is unavailable in this Python installation.") from exc
+    root = tk.Tk()
+    root.withdraw()
+    root.attributes("-topmost", True)
+    try:
+        if kind == "folder":
+            selected = filedialog.askdirectory(title="Choose a music folder", mustexist=True)
+            return [{"type": "folder", "path": str(Path(selected).resolve())}] if selected else []
+        if kind == "files":
+            filetypes = [("Audio files", "*.mp3 *.wav *.flac *.ogg *.m4a"), ("All files", "*.*")]
+            selected = filedialog.askopenfilenames(title="Choose audio tracks", filetypes=filetypes)
+            return [{"type": "file", "path": str(Path(path).resolve())} for path in selected]
+        raise ValueError("Unknown picker type.")
+    finally:
+        root.destroy()
 
 
 def caption_fallback(track: dict, config: dict) -> str:
@@ -108,8 +175,12 @@ class Handler(BaseHTTPRequestHandler):
                 datasets = [{"name": Path(cfg["dataset_path"]).name or "Dataset", "path": cfg["dataset_path"]}]
             result = []
             for dataset in datasets:
-                tracks = scan_dataset(dataset.get("path", ""))
-                result.append({**dataset, "tracks": tracks, "track_count": len(tracks)})
+                sources = dataset_sources(dataset)
+                try:
+                    tracks = scan_sources(sources) if sources else []
+                except ValueError:
+                    tracks = []
+                result.append({**dataset, "sources": sources, "tracks": tracks, "track_count": len(tracks)})
             self.send_json({"datasets": result})
             return
         if parsed.path == "/api/training/settings":
@@ -151,26 +222,38 @@ class Handler(BaseHTTPRequestHandler):
                 return
             if parsed.path == "/api/dataset":
                 name = str(data.get("name", "")).strip()
-                path_text = str(data.get("path", "")).strip()
-                path = Path(path_text).expanduser()
                 if not name:
                     raise ValueError("Dataset name is required.")
-                if not path.is_dir():
-                    raise ValueError("The selected dataset folder does not exist.")
-                tracks = scan_dataset(str(path))
+                raw_sources = data.get("sources")
+                if raw_sources is None:
+                    path_text = str(data.get("path", "")).strip()
+                    raw_sources = [{"type": "folder", "path": path_text}] if path_text else []
+                sources = normalize_sources(raw_sources)
+                tracks = scan_sources(sources)
                 if not tracks:
-                    raise ValueError("No supported audio files were found in that folder.")
+                    raise ValueError("No supported audio files were found in the selected sources.")
                 config = load_config()
                 datasets = config.setdefault("datasets", [])
                 existing = next((item for item in datasets if item.get("name") == name), None)
-                entry = {"name": name, "path": str(path.resolve())}
+                entry = {"name": name, "sources": sources}
                 if existing:
                     existing.update(entry)
                 else:
                     datasets.append(entry)
-                config["dataset_path"] = str(path.resolve())
+                config["dataset_path"] = sources[0]["path"] if sources and sources[0]["type"] == "folder" else ""
                 save_config(config)
                 self.send_json({"ok": True, "dataset": {**entry, "tracks": tracks, "track_count": len(tracks)}})
+                return
+            if parsed.path == "/api/dataset/preview":
+                sources = normalize_sources(data.get("sources", []))
+                tracks = scan_sources(sources)
+                self.send_json({"sources": sources, "tracks": tracks, "track_count": len(tracks)})
+                return
+            if parsed.path == "/api/picker/files":
+                self.send_json({"sources": choose_sources("files")})
+                return
+            if parsed.path == "/api/picker/folder":
+                self.send_json({"sources": choose_sources("folder")})
                 return
             if parsed.path == "/api/caption":
                 config = load_config()
@@ -194,13 +277,17 @@ class Handler(BaseHTTPRequestHandler):
                 self.send_json(TRAINING.preflight(data or None))
                 return
             if parsed.path == "/api/training/start":
-                dataset_path = str(data.get("dataset_path", ""))
-                if not dataset_path:
+                raw_sources = data.get("sources")
+                if raw_sources is None:
+                    dataset_path = str(data.get("dataset_path", ""))
+                    raw_sources = [{"type": "folder", "path": dataset_path}] if dataset_path else []
+                sources = normalize_sources(raw_sources)
+                if not sources:
                     raise ValueError("Choose a dataset before starting training.")
-                tracks = scan_dataset(dataset_path)
+                tracks = scan_sources(sources)
                 request = {
                     **data,
-                    "dataset_name": str(data.get("dataset_name") or Path(dataset_path).name or "Dataset"),
+                    "dataset_name": str(data.get("dataset_name") or "Dataset"),
                 }
                 self.send_json(TRAINING.start(request, tracks), HTTPStatus.ACCEPTED)
                 return
