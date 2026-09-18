@@ -11,16 +11,8 @@ Get-ChildItem -LiteralPath $source -Force | Where-Object { $excluded -notcontain
   Copy-Item -LiteralPath $_.FullName -Destination $InstallRoot -Recurse -Force
 }
 
-$launcher = Join-Path $InstallRoot 'launch_yue_studio.cmd'
-$desktop = [Environment]::GetFolderPath('Desktop')
-$shortcut = Join-Path $desktop 'YuE Studio.lnk'
-$shell = New-Object -ComObject WScript.Shell
-$link = $shell.CreateShortcut($shortcut)
-$link.TargetPath = $launcher
-$link.WorkingDirectory = $InstallRoot
-$link.IconLocation = "$env:SystemRoot\System32\shell32.dll,220"
-$link.Description = 'Open YuE Studio'
-$link.Save()
+$launcher = Join-Path $InstallRoot 'Launch YuE Studio.cmd'
 
 Start-Process -FilePath $launcher -WorkingDirectory $InstallRoot
-Write-Host "YuE Studio was installed and opened. A desktop shortcut was created at: $shortcut"
+Write-Host "YuE Studio was installed or updated and is opening now."
+Write-Host "Installed location: $InstallRoot"
