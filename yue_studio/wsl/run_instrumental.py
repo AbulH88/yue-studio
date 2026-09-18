@@ -293,8 +293,7 @@ def train(manifest: dict, dataset_path: Path) -> None:
         torch.nn.utils.clip_grad_norm_(lora + list(cursor_head.parameters()), 1.0)
         optimizer.step()
         optimizer.zero_grad(set_to_none=True)
-        if step <= 3 or step % 20 == 0:
-            print(f"step {step} loss {last_loss.item():.3f} cursor nan len {ids.shape[1]} {time.time() - started:.0f}s mem {torch.cuda.max_memory_allocated() / 2**30:.1f}G", flush=True)
+        print(f"step {step} loss {last_loss.item():.3f} cursor nan len {ids.shape[1]} {time.time() - started:.0f}s mem {torch.cuda.max_memory_allocated() / 2**30:.1f}G", flush=True)
         if step % 100 == 0 or step == steps:
             artist_loss = evaluate()
             print(f"EVAL step {step} minted_val 0.000 artist {artist_loss:.3f} {time.time() - started:.0f}s", flush=True)
