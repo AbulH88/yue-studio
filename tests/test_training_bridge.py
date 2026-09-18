@@ -98,6 +98,13 @@ class TrainingBridgeTests(unittest.TestCase):
         self.assertEqual(written["value"]["dataset"]["files"][0]["caption"], "medieval instrumental")
         thread.return_value.start.assert_called_once()
 
+    def test_checkpoint_files_reads_the_active_run_directory(self):
+        self.bridge._active = {"run_id": "run-1", "run_dir": "/runs/run-1"}
+        with patch.object(self.bridge, "_list_checkpoints", return_value=[{"name": "step-500.pt", "size": 1234}]):
+            result = self.bridge.checkpoint_files()
+        self.assertEqual(result["run_id"], "run-1")
+        self.assertEqual(result["checkpoints"][0]["name"], "step-500.pt")
+
 
 if __name__ == "__main__":
     unittest.main()

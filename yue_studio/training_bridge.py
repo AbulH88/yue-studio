@@ -447,6 +447,15 @@ class TrainingBridge:
                 return {"status": "idle", "stage": "idle", "logs": [], "checkpoints": []}
             return json.loads(json.dumps(self._active))
 
+    def checkpoint_files(self) -> dict:
+        """Read the current run's checkpoint directory for the live checkpoint view."""
+        with self._lock:
+            active = json.loads(json.dumps(self._active)) if self._active else None
+        if not active:
+            return {"run_id": "", "checkpoints": []}
+        files = self._list_checkpoints(self.settings(), f"{active['run_dir']}/checkpoints")
+        return {"run_id": active["run_id"], "checkpoints": files}
+
     def list_runs(self) -> list[dict]:
         settings = self.settings()
         root = str(settings.get("runs_root", "")).strip()

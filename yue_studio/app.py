@@ -252,6 +252,9 @@ class Handler(BaseHTTPRequestHandler):
         if parsed.path == "/api/training/runs":
             self.send_json({"runs": TRAINING.list_runs()})
             return
+        if parsed.path == "/api/training/checkpoints":
+            self.send_json(TRAINING.checkpoint_files())
+            return
         if parsed.path == "/api/setup/status":
             self.send_json(SETUP.status())
             return
