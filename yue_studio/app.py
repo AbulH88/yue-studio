@@ -14,6 +14,7 @@ from urllib.parse import urlparse
 from training_bridge import TrainingBridge
 from setup_service import SetupService
 from update_service import UpdateService
+from caption_service import CaptionService
 
 
 ROOT = Path(__file__).resolve().parent
@@ -46,6 +47,7 @@ def save_config(config: dict) -> None:
 
 TRAINING = TrainingBridge(ROOT, load_config, save_config)
 SETUP = SetupService(TRAINING, load_config, save_config)
+CAPTIONS = CaptionService(ROOT)
 UPDATES = UpdateService(
     ROOT,
     load_config,
@@ -161,6 +163,18 @@ def caption_fallback(track: dict, config: dict) -> str:
     return f"{prefix}{kind}, inspired by {stem}, expressive instrumentation, balanced arrangement, clear production"
 
 
+def authorized_track(path_text: str) -> dict:
+    target = Path(path_text).resolve()
+    for dataset in load_config().get("datasets", []):
+        try:
+            for track in scan_sources(dataset_sources(dataset)):
+                if Path(track["path"]).resolve() == target:
+                    return track
+        except ValueError:
+            continue
+    raise ValueError("That track is not part of a linked dataset.")
+
+
 class Handler(BaseHTTPRequestHandler):
     def log_message(self, fmt, *args):
         return
@@ -208,6 +222,9 @@ class Handler(BaseHTTPRequestHandler):
             return
         if parsed.path == "/api/update/status":
             self.send_json(UPDATES.status())
+            return
+        if parsed.path == "/api/caption/status":
+            self.send_json(CAPTIONS.status())
             return
         if parsed.path.startswith("/static/"):
             file_path = STATIC / parsed.path.removeprefix("/static/")
@@ -274,14 +291,19 @@ class Handler(BaseHTTPRequestHandler):
                 return
             if parsed.path == "/api/caption":
                 config = load_config()
-                track = data["track"]
-                caption = caption_fallback(track, config)
-                self.send_json({"caption": caption, "engine": "template-fallback"})
+                track = authorized_track(str(data.get("track_path", "")))
+                self.send_json(CAPTIONS.generate(Path(track["path"]), bool(config.get("instrumental", True))))
                 return
             if parsed.path == "/api/caption/save":
-                path = Path(data["caption_path"])
-                path.write_text(data.get("caption", "").strip() + "\n", encoding="utf-8")
-                self.send_json({"ok": True})
+                track = authorized_track(str(data.get("track_path", "")))
+                caption = str(data.get("caption", "")).strip()
+                if not caption:
+                    raise ValueError("Caption cannot be empty.")
+                path = Path(track["caption_path"])
+                if path.exists() and not bool(data.get("overwrite", False)):
+                    raise ValueError("A caption already exists. Confirm replacement before overwriting it.")
+                path.write_text(caption + "\n", encoding="utf-8")
+                self.send_json({"ok": True, "caption_path": str(path)})
                 return
             if parsed.path == "/api/training/settings":
                 self.send_json(TRAINING.save_settings(data))
