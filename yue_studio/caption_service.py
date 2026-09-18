@@ -140,6 +140,8 @@ class CaptionService:
             return json.loads(json.dumps(self._batch))
 
     def start_batch(self, tracks: list[dict], instrumental: bool = True) -> dict:
+        if not self.status()["ready"]:
+            raise ValueError("ACE-Step captioning is not ready. Open Setup and choose Install Captioner first.")
         with self._batch_lock:
             if self._batch["status"] == "running":
                 raise ValueError("A caption batch is already running.")
