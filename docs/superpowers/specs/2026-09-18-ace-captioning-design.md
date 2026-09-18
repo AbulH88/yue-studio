@@ -11,6 +11,8 @@ The app uses the existing local files:
 - `models/captioner/acestep-captioner-Q4_K_M.gguf`
 - `models/captioner/acestep-captioner-mmproj-Q8_0.gguf`
 
+Setup and the Windows installer check for both model files. If either is absent, they download the matching verified release files into the app-managed captioner folder, show progress and disk-space needs, and verify the download before enabling captioning. Existing valid files are reused and never downloaded again.
+
 Captioning runs through a local llama.cpp-compatible audio-capable executable. Setup detects a compatible executable first and downloads/configures one only if absent. The runtime stays local; audio is never uploaded.
 
 ## User flow
