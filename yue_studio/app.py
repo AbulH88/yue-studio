@@ -294,6 +294,9 @@ class Handler(BaseHTTPRequestHandler):
                 track = authorized_track(str(data.get("track_path", "")))
                 self.send_json(CAPTIONS.generate(Path(track["path"]), bool(config.get("instrumental", True))))
                 return
+            if parsed.path == "/api/caption/install":
+                self.send_json(CAPTIONS.install_engine())
+                return
             if parsed.path == "/api/caption/save":
                 track = authorized_track(str(data.get("track_path", "")))
                 caption = str(data.get("caption", "")).strip()

@@ -83,6 +83,15 @@ class CaptionService:
         found = shutil.which("llama-server") or shutil.which("llama-server.exe")
         return Path(found) if found else None
 
+    def install_engine(self) -> dict:
+        script = self.app_root / "install_captioner_engine.ps1"
+        if not script.is_file():
+            raise RuntimeError("Captioner engine installer is missing.")
+        result = subprocess.run(["powershell.exe", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(script), "-EngineRoot", str(self.engine_root)], capture_output=True, text=True, timeout=3600, check=False)
+        if result.returncode:
+            raise RuntimeError(result.stderr.strip() or "ACE-Step audio engine installation failed.")
+        return self.status()
+
     def _ensure_server(self) -> None:
         if self._server and self._server.poll() is None:
             return
