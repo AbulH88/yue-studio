@@ -18,6 +18,12 @@ The first setup downloads roughly 11 GB of model files and needs about 18 GB fre
 
 If an existing YuE2 environment is already working, the app detects it and leaves it untouched. **Advanced** is only for repairs or custom locations.
 
+## Install for double-click launch
+
+For a normal Windows install, download the YuE Studio release ZIP, extract it, and double-click `install_yue_studio.cmd`. It creates a **YuE Studio** desktop icon and opens the app immediately. After that, use the desktop icon; there is no terminal step.
+
+The app checks for published updates on launch. Updates download safely in the background and install automatically on the next launch, never while setup or training is running.
+
 ## Train an instrumental LoRA
 
 1. Add a captioned instrumental dataset to a project.

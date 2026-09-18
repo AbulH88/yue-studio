@@ -13,6 +13,7 @@ from urllib.parse import urlparse
 
 from training_bridge import TrainingBridge
 from setup_service import SetupService
+from update_service import UpdateService
 
 
 ROOT = Path(__file__).resolve().parent
@@ -45,6 +46,13 @@ def save_config(config: dict) -> None:
 
 TRAINING = TrainingBridge(ROOT, load_config, save_config)
 SETUP = SetupService(TRAINING, load_config, save_config)
+UPDATES = UpdateService(
+    ROOT,
+    load_config,
+    save_config,
+    lambda: TRAINING.status().get("status") in {"queued", "validating", "staging", "preparing", "training", "stopping"}
+    or bool(SETUP.status().get("active")),
+)
 
 
 def ffprobe_duration(path: Path) -> float | None:
@@ -168,6 +176,7 @@ class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         parsed = urlparse(self.path)
         if parsed.path == "/api/config":
+            UPDATES.check_async()
             self.send_json(load_config())
             return
         if parsed.path == "/api/dataset":
@@ -196,6 +205,9 @@ class Handler(BaseHTTPRequestHandler):
             return
         if parsed.path == "/api/setup/status":
             self.send_json(SETUP.status())
+            return
+        if parsed.path == "/api/update/status":
+            self.send_json(UPDATES.status())
             return
         if parsed.path.startswith("/static/"):
             file_path = STATIC / parsed.path.removeprefix("/static/")
