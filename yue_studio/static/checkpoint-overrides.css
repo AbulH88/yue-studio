@@ -1,0 +1,5 @@
+/* The checkpoint cards use a light surface and need dark ink text. */
+.checkpoint-row article,
+.checkpoint-row article h3 {
+  color: #33352c;
+}
