@@ -400,6 +400,9 @@ class Handler(BaseHTTPRequestHandler):
                 }
                 self.send_json(TRAINING.start(request, tracks), HTTPStatus.ACCEPTED)
                 return
+            if parsed.path == "/api/training/resume":
+                self.send_json(TRAINING.resume(str(data.get("run_id", "")), str(data.get("checkpoint_name", ""))), HTTPStatus.ACCEPTED)
+                return
             if parsed.path == "/api/training/stop":
                 self.send_json(TRAINING.stop())
                 return

@@ -448,13 +448,47 @@ class TrainingBridge:
             return json.loads(json.dumps(self._active))
 
     def checkpoint_files(self) -> dict:
-        """Read the current run's checkpoint directory for the live checkpoint view."""
+        """Read current checkpoints, surviving a Studio restart."""
         with self._lock:
             active = json.loads(json.dumps(self._active)) if self._active else None
         if not active:
-            return {"run_id": "", "checkpoints": []}
+            runs = self.list_runs()
+            if not runs:
+                return {"run_id": "", "checkpoints": []}
+            active = runs[0]
         files = self._list_checkpoints(self.settings(), f"{active['run_dir']}/checkpoints")
         return {"run_id": active["run_id"], "checkpoints": files}
+
+    def resume(self, run_id: str, checkpoint_name: str) -> dict:
+        """Resume a persisted run from one of its checkpoint files."""
+        if not re.fullmatch(r"[a-z0-9_-]+", run_id):
+            raise ValueError("Invalid run identifier.")
+        if not re.fullmatch(r"(?:best|last|step-\\d+)\\.pt", checkpoint_name):
+            raise ValueError("Invalid checkpoint name.")
+        settings = self.settings()
+        run_dir = f"{str(settings['runs_root']).rstrip('/')}/{run_id}"
+        manifest_path = f"{run_dir}/manifest.json"
+        code = "import pathlib,sys; print(pathlib.Path(sys.argv[1]).read_text(encoding='utf-8'))"
+        result = self._run_wsl(settings, [str(settings["wsl_python"]), "-c", code, manifest_path])
+        if result.returncode:
+            raise ValueError("Saved run was not found.")
+        try:
+            manifest = json.loads(result.stdout)
+        except json.JSONDecodeError as exc:
+            raise ValueError("Saved run manifest is unreadable.") from exc
+        if self._run_wsl(settings, ["test", "-f", f"{run_dir}/checkpoints/{checkpoint_name}"]).returncode:
+            raise ValueError("That checkpoint file was not found.")
+        with self._lock:
+            if self._active and self._active.get("status") in {"queued", "staging", "preparing", "training", "stopping"}:
+                raise ValueError("Another training run is already active.")
+        manifest.setdefault("training", {})["resume_checkpoint"] = checkpoint_name
+        self._update_linux_manifest(settings, manifest_path, {"status": "queued", "stage": "queued", "error": None, "training": manifest["training"]})
+        state = {"run_id": run_id, "run_dir": run_dir, "status": "queued", "stage": "queued", "steps": int(manifest["training"]["steps"]), "step": 0, "logs": [f"Resuming from {checkpoint_name}"], "checkpoints": self._list_checkpoints(settings, f"{run_dir}/checkpoints"), "started_at": utc_now(), "error": None}
+        with self._lock:
+            self._active = state
+            self._stop_requested = False
+        threading.Thread(target=self._run_worker, args=(settings, manifest), daemon=True).start()
+        return self.status()
 
     def list_runs(self) -> list[dict]:
         settings = self.settings()

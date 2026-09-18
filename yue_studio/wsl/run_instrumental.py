@@ -10,6 +10,7 @@ import json
 import math
 import os
 import random
+import re
 import subprocess
 import sys
 import time
@@ -236,6 +237,20 @@ def train(manifest: dict, dataset_path: Path) -> None:
     data = torch.load(dataset_path, weights_only=False)
     if not data:
         raise RuntimeError("Prepared training dataset is empty.")
+    start_step = 0
+    resume_name = str(config.get("resume_checkpoint") or "")
+    if resume_name:
+        saved = torch.load(output / resume_name, map_location="cpu", weights_only=False)
+        saved_lora = saved.get("lora", [])
+        if len(saved_lora) != len(lora):
+            raise RuntimeError("Checkpoint does not match this LoRA layout.")
+        for parameter, value in zip(lora, saved_lora):
+            parameter.data.copy_(value.to(device=parameter.device, dtype=parameter.dtype))
+        if saved.get("cursor_head"):
+            cursor_head.load_state_dict(saved["cursor_head"])
+        matched = re.search(r"step-(\d+)\.pt$", resume_name)
+        start_step = int(saved.get("step", matched.group(1) if matched else 0))
+        print(f"RESUMED step {start_step} from {resume_name}; optimizer momentum starts fresh", flush=True)
     print(f"AR LoRA params {sum(parameter.numel() for parameter in lora) / 1e6:.1f}M lr {learning_rate}", flush=True)
     print(f"artist {len(data)} regularizer 0", flush=True)
 
@@ -272,7 +287,7 @@ def train(manifest: dict, dataset_path: Path) -> None:
 
     def save(path: Path) -> None:
         torch.save(
-            {"lora": [parameter.detach().cpu() for parameter in lora], "rank": rank, "targets": "ar self_attn qkvo + mlp gate/up/down", "cursor_head": cursor_head.state_dict()},
+            {"lora": [parameter.detach().cpu() for parameter in lora], "rank": rank, "step": step, "targets": "ar self_attn qkvo + mlp gate/up/down", "cursor_head": cursor_head.state_dict()},
             path,
         )
         print(f"CHECKPOINT {path.name}", flush=True)
@@ -281,7 +296,7 @@ def train(manifest: dict, dataset_path: Path) -> None:
     print(f"EVAL step 0 minted_val 0.000 artist {initial:.3f}", flush=True)
     started = time.time()
     best = initial
-    for step in range(1, steps + 1):
+    for step in range(start_step + 1, steps + 1):
         for group in optimizer.param_groups:
             group["lr"] = learning_rate * min(1, step / 50) * (0.2 + 0.8 * 0.5 * (1 + math.cos(math.pi * min(step, schedule_steps) / schedule_steps)))
         last_loss = None
