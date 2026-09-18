@@ -22,12 +22,17 @@ If an existing YuE2 environment is already working, the app detects it and leave
 
 For a normal Windows install, download the YuE Studio release ZIP, extract it,
 and double-click **`Install YuE Studio.cmd`**. It installs or safely updates the
-app and opens it automatically when it finishes.
+app, downloads and verifies the local ACE-Step captioner (about 6 GB), installs
+its audio engine, and opens Studio automatically when it finishes. Keep the
+installer window open to see live download and verification progress.
 
 After that, double-click **`Launch YuE Studio.cmd`** in the project folder
 whenever you want to open the app. No desktop shortcut or terminal commands are
 needed. Keep its **YuE Studio Launcher** window open while you work; press
 `Ctrl+C` there (or close it) when you want to stop the local server.
+
+The separate in-app **Setup** flow installs the larger YuE2 training models and
+Ubuntu/WSL training environment when you are ready to train.
 
 The app checks for published updates on launch. Updates download safely in the background and install automatically on the next launch, never while setup or training is running.
 

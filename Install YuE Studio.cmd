@@ -8,7 +8,12 @@ echo  This installs or safely updates YuE Studio for this Windows account.
 echo.
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0install_yue_studio.ps1"
 set "RESULT=%ERRORLEVEL%"
-if not "%RESULT%"=="0" (
+if "%RESULT%"=="0" (
+  echo.
+  echo  Installation complete. YuE Studio is opening in your browser.
+  echo  Press any key to close this installer window.
+  pause >nul
+) else (
   echo.
   echo  Installation did not finish. Read the message above, then try again.
   pause
