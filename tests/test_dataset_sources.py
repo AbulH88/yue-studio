@@ -6,7 +6,7 @@ import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "yue_studio"))
 
-from app import dataset_sources, normalize_sources, remove_dataset, scan_sources
+from app import dataset_sources, dataset_tracks, normalize_sources, remove_dataset, remove_track_from_dataset, scan_sources
 
 
 class DatasetSourceTests(unittest.TestCase):
@@ -56,6 +56,13 @@ class DatasetSourceTests(unittest.TestCase):
     def test_remove_unknown_dataset_is_rejected(self):
         with self.assertRaises(ValueError):
             remove_dataset({"datasets": [{"name": "Keep"}]}, "Missing")
+
+    def test_remove_track_only_excludes_it_from_the_dataset(self):
+        config = {"datasets": [{"name": "Album", "sources": [{"type": "folder", "path": str(self.album)}]}]}
+        result = remove_track_from_dataset(config, "Album", str(self.album / "lute.flac"))
+        self.assertTrue((self.album / "lute.flac").is_file())
+        self.assertTrue((self.album / "lute.txt").is_file())
+        self.assertEqual([track["name"] for track in dataset_tracks(result["datasets"][0])], ["harp.wav"])
 
 
 if __name__ == "__main__":

@@ -1,3 +1,4 @@
+import json
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -66,3 +67,18 @@ class CaptionServiceTests(unittest.TestCase):
                 service._ensure_server()
             arguments = started.call_args.args[0]
             self.assertEqual(arguments[arguments.index("-c") + 1], "8192")
+
+    def test_caption_request_uses_audio_url_data_uri(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            track = root / "song.wav"
+            track.write_bytes(b"wav")
+            service = CaptionService(root)
+            service._ensure_server = lambda: None
+            response = type("Response", (), {"read": lambda self: b'{"choices":[{"message":{"content":"lute"}}]}', "__enter__": lambda self: self, "__exit__": lambda self, *args: None})()
+            with patch("caption_service.urllib.request.urlopen", return_value=response) as opened:
+                service.generate(track)
+            body = json.loads(opened.call_args.args[0].data.decode("utf-8"))
+            audio = body["messages"][0]["content"][0]
+            self.assertEqual(audio["type"], "audio_url")
+            self.assertTrue(audio["audio_url"]["url"].startswith("data:audio/wav;base64,"))

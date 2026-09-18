@@ -8,6 +8,7 @@ import subprocess
 import tempfile
 import threading
 import time
+import urllib.error
 import urllib.request
 from pathlib import Path
 
@@ -140,10 +141,14 @@ class CaptionService:
     def generate(self, track_path: Path, instrumental: bool = True) -> dict:
         self._ensure_server()
         audio = base64.b64encode(self._wav_bytes(track_path)).decode("ascii")
-        body = {"messages": [{"role": "user", "content": [{"type": "input_audio", "input_audio": {"data": audio, "format": "wav"}}, {"type": "text", "text": PROMPT}]}], "max_tokens": 400, "temperature": 0, "top_k": 1, "seed": 4242, "stream": False, "cache_prompt": False}
+        body = {"messages": [{"role": "user", "content": [{"type": "audio_url", "audio_url": {"url": "data:audio/wav;base64," + audio}}, {"type": "text", "text": PROMPT}]}], "max_tokens": 400, "temperature": 0, "top_k": 1, "seed": 4242, "stream": False, "cache_prompt": False}
         request = urllib.request.Request(f"http://127.0.0.1:{self.port}/v1/chat/completions", data=json.dumps(body).encode("utf-8"), headers={"Content-Type": "application/json"})
-        with urllib.request.urlopen(request, timeout=300) as response:
-            value = json.loads(response.read().decode("utf-8"))
+        try:
+            with urllib.request.urlopen(request, timeout=300) as response:
+                value = json.loads(response.read().decode("utf-8"))
+        except urllib.error.HTTPError as exc:
+            detail = exc.read().decode("utf-8", errors="replace").strip()
+            raise RuntimeError(f"ACE-Step rejected this audio request ({exc.code}): {detail or exc.reason}") from exc
         raw = str(value["choices"][0]["message"]["content"])
         caption = format_yue2_caption(raw, instrumental)
         return {"raw_caption": raw, "caption": caption, "warning": instrumental_warning(caption), "engine": "ACE-Step local"}

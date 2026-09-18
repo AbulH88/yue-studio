@@ -133,6 +133,24 @@ def dataset_sources(dataset: dict) -> list[dict]:
     return [{"type": "folder", "path": path}] if path else []
 
 
+def dataset_tracks(dataset: dict) -> list[dict]:
+    excluded = {str(path).casefold() for path in dataset.get("excluded_tracks", [])}
+    return [track for track in scan_sources(dataset_sources(dataset)) if track["path"].casefold() not in excluded]
+
+
+def remove_track_from_dataset(config: dict, dataset_name: str, path_text: str) -> dict:
+    dataset = next((item for item in config.get("datasets", []) if item.get("name") == dataset_name), None)
+    if not dataset:
+        raise ValueError("Dataset was not found.")
+    target = Path(path_text).resolve()
+    if target not in {Path(track["path"]).resolve() for track in dataset_tracks(dataset)}:
+        raise ValueError("That track is not part of this dataset.")
+    excluded = {str(path).casefold() for path in dataset.get("excluded_tracks", [])}
+    excluded.add(str(target).casefold())
+    dataset["excluded_tracks"] = sorted(excluded)
+    return config
+
+
 def remove_dataset(config: dict, name: str) -> dict:
     datasets = config.get("datasets", [])
     remaining = [dataset for dataset in datasets if dataset.get("name") != name]
@@ -177,7 +195,7 @@ def authorized_track(path_text: str) -> dict:
     target = Path(path_text).resolve()
     for dataset in load_config().get("datasets", []):
         try:
-            for track in scan_sources(dataset_sources(dataset)):
+            for track in dataset_tracks(dataset):
                 if Path(track["path"]).resolve() == target:
                     return track
         except ValueError:
@@ -219,7 +237,7 @@ class Handler(BaseHTTPRequestHandler):
             for dataset in datasets:
                 sources = dataset_sources(dataset)
                 try:
-                    tracks = scan_sources(sources) if sources else []
+                    tracks = dataset_tracks(dataset) if sources else []
                 except ValueError:
                     tracks = []
                 result.append({**dataset, "sources": sources, "tracks": tracks, "track_count": len(tracks)})
@@ -311,6 +329,15 @@ class Handler(BaseHTTPRequestHandler):
                 save_config(config)
                 self.send_json({"ok": True, "remaining": len(config["datasets"])})
                 return
+            if parsed.path == "/api/dataset/track/remove":
+                dataset_name = str(data.get("dataset_name", "")).strip()
+                track_path = str(data.get("track_path", "")).strip()
+                if not dataset_name or not track_path:
+                    raise ValueError("Dataset and track are required.")
+                config = remove_track_from_dataset(load_config(), dataset_name, track_path)
+                save_config(config)
+                self.send_json({"ok": True})
+                return
             if parsed.path == "/api/picker/files":
                 self.send_json({"sources": choose_sources("files")})
                 return
@@ -327,7 +354,7 @@ class Handler(BaseHTTPRequestHandler):
                 return
             if parsed.path == "/api/caption/batch/start":
                 dataset = saved_dataset(str(data.get("dataset_name", "")).strip())
-                tracks = scan_sources(dataset_sources(dataset))
+                tracks = dataset_tracks(dataset)
                 self.send_json(CAPTIONS.start_batch(tracks, bool(load_config().get("instrumental", True))), HTTPStatus.ACCEPTED)
                 return
             if parsed.path == "/api/caption/save":
@@ -362,7 +389,8 @@ class Handler(BaseHTTPRequestHandler):
                 sources = normalize_sources(raw_sources)
                 if not sources:
                     raise ValueError("Choose a dataset before starting training.")
-                tracks = scan_sources(sources)
+                dataset = saved_dataset(str(data.get("dataset_name", "")).strip()) if data.get("dataset_name") else None
+                tracks = dataset_tracks(dataset) if dataset else scan_sources(sources)
                 request = {
                     **data,
                     "dataset_name": str(data.get("dataset_name") or "Dataset"),
