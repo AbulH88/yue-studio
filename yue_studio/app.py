@@ -185,6 +185,13 @@ def authorized_track(path_text: str) -> dict:
     raise ValueError("That track is not part of a linked dataset.")
 
 
+def saved_dataset(name: str) -> dict:
+    dataset = next((item for item in load_config().get("datasets", []) if item.get("name") == name), None)
+    if not dataset:
+        raise ValueError("Dataset was not found.")
+    return dataset
+
+
 class Handler(BaseHTTPRequestHandler):
     def log_message(self, fmt, *args):
         return
@@ -235,6 +242,9 @@ class Handler(BaseHTTPRequestHandler):
             return
         if parsed.path == "/api/caption/status":
             self.send_json(CAPTIONS.status())
+            return
+        if parsed.path == "/api/caption/batch/status":
+            self.send_json(CAPTIONS.batch_status())
             return
         if parsed.path.startswith("/static/"):
             file_path = STATIC / parsed.path.removeprefix("/static/")
@@ -314,6 +324,11 @@ class Handler(BaseHTTPRequestHandler):
                 return
             if parsed.path == "/api/caption/install":
                 self.send_json(CAPTIONS.install_engine())
+                return
+            if parsed.path == "/api/caption/batch/start":
+                dataset = saved_dataset(str(data.get("dataset_name", "")).strip())
+                tracks = scan_sources(dataset_sources(dataset))
+                self.send_json(CAPTIONS.start_batch(tracks, bool(load_config().get("instrumental", True))), HTTPStatus.ACCEPTED)
                 return
             if parsed.path == "/api/caption/save":
                 track = authorized_track(str(data.get("track_path", "")))

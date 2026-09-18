@@ -6,6 +6,7 @@ import json
 import shutil
 import subprocess
 import tempfile
+import threading
 import time
 import urllib.request
 from pathlib import Path
@@ -51,6 +52,8 @@ class CaptionService:
         self.engine_root = self.model_root / "engine"
         self._server: subprocess.Popen | None = None
         self._hash_cache: dict[str, tuple[int, int, bool]] = {}
+        self._batch_lock = threading.Lock()
+        self._batch: dict = {"status": "idle", "total": 0, "completed": 0, "saved": 0, "skipped": 0, "failed": [], "current": ""}
         self.port = 9766
 
     def _model_path(self, key: str) -> Path:
@@ -131,3 +134,41 @@ class CaptionService:
         raw = str(value["choices"][0]["message"]["content"])
         caption = format_yue2_caption(raw, instrumental)
         return {"raw_caption": raw, "caption": caption, "warning": instrumental_warning(caption), "engine": "ACE-Step local"}
+
+    def batch_status(self) -> dict:
+        with self._batch_lock:
+            return json.loads(json.dumps(self._batch))
+
+    def start_batch(self, tracks: list[dict], instrumental: bool = True) -> dict:
+        with self._batch_lock:
+            if self._batch["status"] == "running":
+                raise ValueError("A caption batch is already running.")
+            missing = [track for track in tracks if not track.get("has_caption")]
+            self._batch = {"status": "running" if missing else "complete", "total": len(missing), "completed": 0, "saved": 0, "skipped": len(tracks) - len(missing), "failed": [], "current": ""}
+            if missing:
+                threading.Thread(target=self._run_batch, args=(missing, instrumental), daemon=True, name="yue-caption-batch").start()
+            return json.loads(json.dumps(self._batch))
+
+    def _run_batch(self, tracks: list[dict], instrumental: bool) -> None:
+        for track in tracks:
+            with self._batch_lock:
+                self._batch["current"] = track["name"]
+            try:
+                caption_path = Path(track["caption_path"])
+                if caption_path.exists() and caption_path.read_text(encoding="utf-8", errors="replace").strip():
+                    with self._batch_lock:
+                        self._batch["skipped"] += 1
+                else:
+                    result = self.generate(Path(track["path"]), instrumental)
+                    caption_path.write_text(result["caption"] + "\n", encoding="utf-8")
+                    with self._batch_lock:
+                        self._batch["saved"] += 1
+            except (OSError, RuntimeError, ValueError, KeyError) as exc:
+                with self._batch_lock:
+                    self._batch["failed"].append({"name": track["name"], "error": str(exc)})
+            finally:
+                with self._batch_lock:
+                    self._batch["completed"] += 1
+        with self._batch_lock:
+            self._batch["current"] = ""
+            self._batch["status"] = "complete"
