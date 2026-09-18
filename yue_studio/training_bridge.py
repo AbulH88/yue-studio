@@ -459,6 +459,30 @@ class TrainingBridge:
         files = self._list_checkpoints(self.settings(), f"{active['run_dir']}/checkpoints")
         return {"run_id": active["run_id"], "checkpoints": files}
 
+    def export_checkpoints(self, run_id: str, checkpoint_names: list[str], destination: str) -> dict:
+        """Create portable adapter folders for the bundled ComfyUI loader."""
+        if not re.fullmatch(r"[a-z0-9_-]+", run_id) or not checkpoint_names:
+            raise ValueError("Choose at least one valid checkpoint.")
+        target = Path(destination).expanduser().resolve()
+        if not target.is_dir():
+            raise ValueError("Choose an existing export folder.")
+        settings = self.settings()
+        run_dir = f"{str(settings['runs_root']).rstrip('/')}/{run_id}"
+        exporter = self.windows_to_wsl(settings, self.app_root / "wsl" / "export_comfy_lora.py")
+        target_wsl = self.windows_to_wsl(settings, target)
+        exported = []
+        for name in checkpoint_names:
+            if not re.fullmatch(r"(?:best|last|step-\d+)\.pt", str(name)):
+                raise ValueError("Invalid checkpoint name.")
+            if self._run_wsl(settings, ["test", "-f", f"{run_dir}/checkpoints/{name}"]).returncode:
+                raise ValueError(f"Checkpoint not found: {name}")
+            folder = f"{safe_run_name(run_id)}-{Path(name).stem}"
+            result = self._run_wsl(settings, [str(settings["wsl_python"]), exporter, "--checkpoint", f"{run_dir}/checkpoints/{name}", "--destination", f"{target_wsl}/{folder}"], timeout=300)
+            if result.returncode:
+                raise RuntimeError(result.stderr.strip() or f"Could not export {name}.")
+            exported.append(str(target / folder))
+        return {"ok": True, "exported": exported}
+
     def resume(self, run_id: str, checkpoint_name: str) -> dict:
         """Resume a persisted run from one of its checkpoint files."""
         if not re.fullmatch(r"[a-z0-9_-]+", run_id):

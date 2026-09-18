@@ -3,3 +3,11 @@
 .checkpoint-row article h3 {
   color: #33352c;
 }
+
+/* The overview duplication is replaced by the dedicated Checkpoints tab. */
+#datasetsTab > .checkpoints { display: none; }
+
+#checkpointList { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.checkpoint-export { grid-column: 1 / -1; display: flex; gap: 14px; align-items: center; justify-content: flex-end; color: #f0e3c7; }
+.checkpoint-export label { margin-right: auto; }
+.checkpoint-row article > label { align-self: flex-start; }

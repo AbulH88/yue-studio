@@ -183,6 +183,11 @@ def choose_sources(kind: str) -> list[dict]:
         root.destroy()
 
 
+def choose_export_folder() -> str:
+    chosen = choose_sources("folder")
+    return chosen[0]["path"] if chosen else ""
+
+
 def caption_fallback(track: dict, config: dict) -> str:
     trigger = config.get("trigger_word", "").strip()
     prefix = f"{trigger}, " if trigger else ""
@@ -254,6 +259,9 @@ class Handler(BaseHTTPRequestHandler):
             return
         if parsed.path == "/api/training/checkpoints":
             self.send_json(TRAINING.checkpoint_files())
+            return
+        if parsed.path == "/api/picker/export-folder":
+            self.send_json({"path": choose_export_folder()})
             return
         if parsed.path == "/api/setup/status":
             self.send_json(SETUP.status())
@@ -402,6 +410,9 @@ class Handler(BaseHTTPRequestHandler):
                 return
             if parsed.path == "/api/training/resume":
                 self.send_json(TRAINING.resume(str(data.get("run_id", "")), str(data.get("checkpoint_name", ""))), HTTPStatus.ACCEPTED)
+                return
+            if parsed.path == "/api/training/export":
+                self.send_json(TRAINING.export_checkpoints(str(data.get("run_id", "")), list(data.get("checkpoint_names", [])), str(data.get("destination", ""))))
                 return
             if parsed.path == "/api/training/stop":
                 self.send_json(TRAINING.stop())
