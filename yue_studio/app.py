@@ -47,7 +47,7 @@ def save_config(config: dict) -> None:
 
 TRAINING = TrainingBridge(ROOT, load_config, save_config)
 SETUP = SetupService(TRAINING, load_config, save_config)
-CAPTIONS = CaptionService(ROOT)
+CAPTIONS = CaptionService(ROOT.parent)
 UPDATES = UpdateService(
     ROOT,
     load_config,

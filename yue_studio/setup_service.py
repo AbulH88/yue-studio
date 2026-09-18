@@ -129,7 +129,7 @@ class SetupService:
 
             self._save_state(stage="downloading", message="Downloading the local ACE-Step captioner (about 6 GB)…")
             self._log("Checking the local ACE-Step audio captioner files.")
-            caption_root = self.bridge.windows_to_wsl(settings, self.bridge.app_root / "models" / "captioner")
+            caption_root = self.bridge.windows_to_wsl(settings, self.bridge.app_root.parent / "models" / "captioner")
             caption_download = (
                 "from huggingface_hub import hf_hub_download; import sys; root=sys.argv[1]; repo='dernet/acestep-captioner-GGUF'; rev='732354f20c9dd5fa1c037d0e301e8bf837c1cf8e'; "
                 "hf_hub_download(repo,'acestep-captioner-Q4_K_M.gguf',revision=rev,local_dir=root); "
@@ -137,8 +137,8 @@ class SetupService:
             )
             self._run([python, "-c", caption_download, caption_root], timeout=14400)
             self._save_state(stage="installing", message="Installing ACE-Step’s local audio engine…")
-            engine_script = self.bridge.app_root / "install_captioner_engine.ps1"
-            engine_root = self.bridge.app_root / "models" / "captioner" / "engine"
+            engine_script = self.bridge.app_root.parent / "install_captioner_engine.ps1"
+            engine_root = self.bridge.app_root.parent / "models" / "captioner" / "engine"
             installed_engine = subprocess.run(["powershell.exe", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(engine_script), "-EngineRoot", str(engine_root)], capture_output=True, text=True, timeout=3600, check=False)
             if installed_engine.returncode:
                 raise RuntimeError(installed_engine.stderr.strip() or "ACE-Step audio engine installation failed.")
