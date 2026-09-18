@@ -463,7 +463,7 @@ class TrainingBridge:
         """Resume a persisted run from one of its checkpoint files."""
         if not re.fullmatch(r"[a-z0-9_-]+", run_id):
             raise ValueError("Invalid run identifier.")
-        if not re.fullmatch(r"(?:best|last|step-\\d+)\\.pt", checkpoint_name):
+        if not re.fullmatch(r"(?:best|last|step-\d+)\.pt", checkpoint_name):
             raise ValueError("Invalid checkpoint name.")
         settings = self.settings()
         run_dir = f"{str(settings['runs_root']).rstrip('/')}/{run_id}"
