@@ -26,7 +26,8 @@ app and opens it automatically when it finishes.
 
 After that, double-click **`Launch YuE Studio.cmd`** in the project folder
 whenever you want to open the app. No desktop shortcut or terminal commands are
-needed.
+needed. Keep its **YuE Studio Launcher** window open while you work; press
+`Ctrl+C` there (or close it) when you want to stop the local server.
 
 The app checks for published updates on launch. Updates download safely in the background and install automatically on the next launch, never while setup or training is running.
 
