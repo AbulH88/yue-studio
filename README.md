@@ -21,10 +21,11 @@ If an existing YuE2 environment is already working, the app detects it and leave
 ## Install and launch with a double-click
 
 For a normal Windows install, download the YuE Studio release ZIP, extract it,
-and double-click **`Install YuE Studio.cmd`**. It installs or safely updates the
-app, downloads and verifies the local ACE-Step captioner (about 6 GB), installs
-its audio engine, and opens Studio automatically when it finishes. Keep the
-installer window open to see live download and verification progress.
+and double-click **`Install YuE Studio.cmd`**. It prepares that same project
+folder, downloads and verifies the local ACE-Step captioner (about 6 GB),
+installs its audio engine, and opens Studio automatically when it finishes.
+Nothing is copied to AppData. Keep the installer window open to see live
+download and verification progress.
 
 After that, double-click **`Launch YuE Studio.cmd`** in the project folder
 whenever you want to open the app. No desktop shortcut or terminal commands are

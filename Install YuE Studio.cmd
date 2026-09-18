@@ -4,7 +4,7 @@ title Install YuE Studio
 echo.
 echo  YuE Studio installer
 echo  --------------------
-echo  This installs or safely updates YuE Studio for this Windows account.
+echo  This prepares YuE Studio inside this project folder.
 echo.
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0install_yue_studio.ps1"
 set "RESULT=%ERRORLEVEL%"

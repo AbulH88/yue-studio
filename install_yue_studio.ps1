@@ -1,10 +1,11 @@
 param(
-  [string]$InstallRoot = "$env:LOCALAPPDATA\YuE Studio"
+  [string]$InstallRoot
 )
 
 $ErrorActionPreference = 'Stop'
 $source = Split-Path -Parent $MyInvocation.MyCommand.Path
-$excluded = @('.git', '.updates', '__pycache__', 'studio.config.json', 'projects', 'exports', 'models')
+if ([string]::IsNullOrWhiteSpace($InstallRoot)) { $InstallRoot = $source }
+$InstallRoot = (Resolve-Path -LiteralPath $InstallRoot).Path
 $captionRevision = '732354f20c9dd5fa1c037d0e301e8bf837c1cf8e'
 $captionModels = @(
   @{ Name = 'acestep-captioner-Q4_K_M.gguf'; Sha256 = '1c6fb97c2599dc259af70bbfc89a65da24360ba55d7b982366ca32f7e2ae8786'; Size = '4.68 GB' },
@@ -39,10 +40,9 @@ function Install-CaptionerModel {
 }
 
 Write-Host ''
-Write-Host 'Step 1 of 4: Copying YuE Studio...'
-New-Item -ItemType Directory -Path $InstallRoot -Force | Out-Null
-Get-ChildItem -LiteralPath $source -Force | Where-Object { $excluded -notcontains $_.Name } | ForEach-Object {
-  Copy-Item -LiteralPath $_.FullName -Destination $InstallRoot -Recurse -Force
+Write-Host 'Step 1 of 4: Checking this YuE Studio project folder...'
+if (-not (Test-Path -LiteralPath (Join-Path $InstallRoot 'yue_studio\app.py'))) {
+  throw 'This installer must stay inside a YuE Studio project folder.'
 }
 
 Write-Host 'Step 2 of 4: Installing the local ACE-Step captioner models...'
@@ -53,16 +53,20 @@ foreach ($model in $captionModels) { Install-CaptionerModel -Model $model -Desti
 Write-Host 'Step 3 of 4: Installing the local ACE-Step captioner engine...'
 $engineInstaller = Join-Path $InstallRoot 'install_captioner_engine.ps1'
 $engineRoot = Join-Path $captionRoot 'engine'
-& powershell.exe -NoProfile -ExecutionPolicy Bypass -File $engineInstaller -EngineRoot $engineRoot
-if ($LASTEXITCODE -ne 0) { throw 'ACE-Step captioner engine installation failed.' }
-if (-not (Test-Path -LiteralPath (Join-Path $engineRoot 'llama-server.exe'))) {
-  throw 'ACE-Step captioner engine verification failed: llama-server.exe is missing.'
+if (Test-Path -LiteralPath (Join-Path $engineRoot 'llama-server.exe')) {
+  Write-Host '  Verified already: ACE-Step captioner engine'
+} else {
+  & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $engineInstaller -EngineRoot $engineRoot
+  if ($LASTEXITCODE -ne 0) { throw 'ACE-Step captioner engine installation failed.' }
+  if (-not (Test-Path -LiteralPath (Join-Path $engineRoot 'llama-server.exe'))) {
+    throw 'ACE-Step captioner engine verification failed: llama-server.exe is missing.'
+  }
 }
 
 $launcher = Join-Path $InstallRoot 'Launch YuE Studio.cmd'
 
 Write-Host 'Step 4 of 4: Opening YuE Studio...'
 Start-Process -FilePath $launcher -WorkingDirectory $InstallRoot
-Write-Host 'YuE Studio was installed or updated and is opening now.'
+Write-Host 'YuE Studio was prepared in this project folder and is opening now.'
 Write-Host 'The ACE-Step captioner is ready for local audio captioning.'
-Write-Host "Installed location: $InstallRoot"
+Write-Host "Project location: $InstallRoot"
