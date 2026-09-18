@@ -133,6 +133,16 @@ def dataset_sources(dataset: dict) -> list[dict]:
     return [{"type": "folder", "path": path}] if path else []
 
 
+def remove_dataset(config: dict, name: str) -> dict:
+    datasets = config.get("datasets", [])
+    remaining = [dataset for dataset in datasets if dataset.get("name") != name]
+    if len(remaining) == len(datasets):
+        raise ValueError("Dataset was not found.")
+    config["datasets"] = remaining
+    config["dataset_path"] = ""
+    return config
+
+
 def choose_sources(kind: str) -> list[dict]:
     try:
         import tkinter as tk
@@ -282,6 +292,14 @@ class Handler(BaseHTTPRequestHandler):
                 sources = normalize_sources(data.get("sources", []))
                 tracks = scan_sources(sources)
                 self.send_json({"sources": sources, "tracks": tracks, "track_count": len(tracks)})
+                return
+            if parsed.path == "/api/dataset/delete":
+                name = str(data.get("name", "")).strip()
+                if not name:
+                    raise ValueError("Dataset name is required.")
+                config = remove_dataset(load_config(), name)
+                save_config(config)
+                self.send_json({"ok": True, "remaining": len(config["datasets"])})
                 return
             if parsed.path == "/api/picker/files":
                 self.send_json({"sources": choose_sources("files")})

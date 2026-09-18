@@ -6,7 +6,7 @@ import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "yue_studio"))
 
-from app import dataset_sources, normalize_sources, scan_sources
+from app import dataset_sources, normalize_sources, remove_dataset, scan_sources
 
 
 class DatasetSourceTests(unittest.TestCase):
@@ -45,6 +45,17 @@ class DatasetSourceTests(unittest.TestCase):
     def test_missing_source_is_rejected(self):
         with self.assertRaises(ValueError):
             normalize_sources([{"type": "file", "path": str(self.root / "gone.wav")}])
+
+    def test_remove_dataset_preserves_unrelated_configuration(self):
+        config = {"project_name": "Test", "datasets": [{"name": "Keep"}, {"name": "Remove"}], "training": {"rank": 64}}
+        result = remove_dataset(config, "Remove")
+        self.assertEqual(result["datasets"], [{"name": "Keep"}])
+        self.assertEqual(result["project_name"], "Test")
+        self.assertEqual(result["training"]["rank"], 64)
+
+    def test_remove_unknown_dataset_is_rejected(self):
+        with self.assertRaises(ValueError):
+            remove_dataset({"datasets": [{"name": "Keep"}]}, "Missing")
 
 
 if __name__ == "__main__":
