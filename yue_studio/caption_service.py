@@ -104,7 +104,7 @@ class CaptionService:
         engine = self._engine_path()
         if not engine or engine.name.lower() != "llama-server.exe":
             raise ValueError("ACE-Step audio engine is not installed yet. Run Setup to install the compatible engine.")
-        self._server = subprocess.Popen([str(engine), "-m", str(self._model_path("model")), "--mmproj", str(self._model_path("projector")), "-ngl", "99", "-c", "4096", "--port", str(self.port)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        self._server = subprocess.Popen([str(engine), "-m", str(self._model_path("model")), "--mmproj", str(self._model_path("projector")), "-ngl", "99", "-c", "8192", "--port", str(self.port)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         for _ in range(30):
             try:
                 with urllib.request.urlopen(f"http://127.0.0.1:{self.port}/health", timeout=1):

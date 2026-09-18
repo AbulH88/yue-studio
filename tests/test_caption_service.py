@@ -1,5 +1,6 @@
 import tempfile
 import unittest
+from unittest.mock import patch
 from pathlib import Path
 import sys
 
@@ -44,3 +45,15 @@ class CaptionServiceTests(unittest.TestCase):
             self.assertEqual(result["saved"], 1)
             self.assertEqual(result["skipped"], 1)
             self.assertEqual(len(result["failed"]), 1)
+
+    def test_server_uses_context_large_enough_for_full_songs(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            service = CaptionService(root)
+            engine = root / "llama-server.exe"
+            service.status = lambda: {"models": [{"ready": True}, {"ready": True}]}
+            service._engine_path = lambda: engine
+            with patch("caption_service.subprocess.Popen") as started, patch("caption_service.urllib.request.urlopen"):
+                service._ensure_server()
+            arguments = started.call_args.args[0]
+            self.assertEqual(arguments[arguments.index("-c") + 1], "8192")
