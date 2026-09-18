@@ -10,7 +10,7 @@ The Tracks header gains **Caption All Missing**. It states the number of eligibl
 
 ## Behavior and safety
 
-Tracks are processed serially through the same ACE-Step service used for individual captioning. Each successful generated YuE2 caption is written to its matching `.txt` sidecar. Existing non-empty captions are skipped and never overwritten. A failure is recorded for that track and processing continues with later tracks. A final summary reports saved, skipped, and failed counts.
+Tracks are processed serially through the same ACE-Step service used for individual captioning. Each successful generated YuE2 caption is written to its matching `.txt` sidecar. Existing non-empty captions are skipped and never overwritten. After every attempted track, the app stops the local ACE-Step server and waits for it to exit, which releases the model's VRAM before the next track starts. A failure is recorded for that track and immediately stops the batch; later tracks are left untouched. The final state identifies the track and error that stopped processing.
 
 The action is unavailable while a batch is active, ACE-Step is not ready, or training is active. It uses only tracks currently linked to the selected dataset; arbitrary paths are rejected.
 

@@ -113,6 +113,19 @@ class CaptionService:
                 time.sleep(0.5)
         raise RuntimeError("ACE-Step audio engine did not start. Open Setup for details.")
 
+    def release_vram(self) -> None:
+        """Stop ACE-Step so its GPU allocations are released before another batch item."""
+        server = self._server
+        self._server = None
+        if not server or server.poll() is not None:
+            return
+        server.terminate()
+        try:
+            server.wait(timeout=15)
+        except subprocess.TimeoutExpired:
+            server.kill()
+            server.wait(timeout=15)
+
     @staticmethod
     def _wav_bytes(track: Path) -> bytes:
         if track.suffix.lower() == ".wav":
@@ -169,8 +182,19 @@ class CaptionService:
                 with self._batch_lock:
                     self._batch["failed"].append({"name": track["name"], "error": str(exc)})
             finally:
+                try:
+                    # A llama-server process owns the caption model's VRAM. Stopping it is
+                    # the reliable way to release that memory between batch items.
+                    self.release_vram()
+                except (OSError, RuntimeError, subprocess.SubprocessError) as exc:
+                    with self._batch_lock:
+                        self._batch["failed"].append({"name": track["name"], "error": f"Could not release ACE-Step VRAM: {exc}"})
                 with self._batch_lock:
                     self._batch["completed"] += 1
+                    if self._batch["failed"]:
+                        self._batch["current"] = ""
+                        self._batch["status"] = "stopped"
+                        return
         with self._batch_lock:
             self._batch["current"] = ""
             self._batch["status"] = "complete"

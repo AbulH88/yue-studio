@@ -21,7 +21,7 @@ class CaptionServiceTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             format_yue2_caption("   ")
 
-    def test_batch_skips_existing_caption_and_continues_after_failure(self):
+    def test_batch_releases_vram_after_each_track_and_stops_after_failure(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             service = CaptionService(root)
@@ -32,11 +32,15 @@ class CaptionServiceTests(unittest.TestCase):
             for path in (good, bad, existing):
                 path.write_bytes(b"audio")
             existing.with_suffix(".txt").write_text("already captioned", encoding="utf-8")
+            attempted = []
             def generated(path, instrumental=True):
+                attempted.append(path)
                 if path == bad:
                     raise RuntimeError("bad audio")
                 return {"caption": "instrumental, no vocals, lute"}
             service.generate = generated
+            released = []
+            service.release_vram = lambda: released.append(True)
             tracks = [{"name": path.name, "path": str(path), "caption_path": str(path.with_suffix('.txt')), "has_caption": path.with_suffix('.txt').exists()} for path in (good, bad, existing)]
             service.start_batch(tracks)
             while service.batch_status()["status"] == "running":
@@ -45,6 +49,11 @@ class CaptionServiceTests(unittest.TestCase):
             self.assertEqual(result["saved"], 1)
             self.assertEqual(result["skipped"], 1)
             self.assertEqual(len(result["failed"]), 1)
+            self.assertEqual(result["status"], "stopped")
+            self.assertEqual(result["completed"], 2)
+            self.assertEqual(len(released), 2)
+            self.assertEqual(attempted, [good, bad])
+            self.assertEqual(existing.with_suffix(".txt").read_text(encoding="utf-8"), "already captioned")
 
     def test_server_uses_context_large_enough_for_full_songs(self):
         with tempfile.TemporaryDirectory() as directory:
