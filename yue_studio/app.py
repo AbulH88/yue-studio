@@ -12,6 +12,7 @@ from pathlib import Path
 from urllib.parse import urlparse
 
 from training_bridge import TrainingBridge
+from setup_service import SetupService
 
 
 ROOT = Path(__file__).resolve().parent
@@ -43,6 +44,7 @@ def save_config(config: dict) -> None:
 
 
 TRAINING = TrainingBridge(ROOT, load_config, save_config)
+SETUP = SetupService(TRAINING, load_config, save_config)
 
 
 def ffprobe_duration(path: Path) -> float | None:
@@ -192,6 +194,9 @@ class Handler(BaseHTTPRequestHandler):
         if parsed.path == "/api/training/runs":
             self.send_json({"runs": TRAINING.list_runs()})
             return
+        if parsed.path == "/api/setup/status":
+            self.send_json(SETUP.status())
+            return
         if parsed.path.startswith("/static/"):
             file_path = STATIC / parsed.path.removeprefix("/static/")
         else:
@@ -268,6 +273,9 @@ class Handler(BaseHTTPRequestHandler):
                 return
             if parsed.path == "/api/training/settings":
                 self.send_json(TRAINING.save_settings(data))
+                return
+            if parsed.path == "/api/setup/start":
+                self.send_json(SETUP.start(), HTTPStatus.ACCEPTED)
                 return
             if parsed.path == "/api/training/autodetect":
                 detected = TRAINING.autodetect(str(data.get("wsl_distribution", "Ubuntu")))

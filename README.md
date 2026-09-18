@@ -2,25 +2,32 @@
 
 A standalone local Windows app for preparing music datasets, captioning tracks, training YuE2 LoRAs, comparing checkpoints, and exporting ComfyUI-compatible safetensors.
 
-## Run locally
+## Run YuE Studio
 
 ```powershell
 python yue_studio/app.py
 ```
 
-The app binds to localhost only. Model weights, datasets, generated audio, exports, and machine-specific settings are intentionally excluded from Git.
+The app opens locally at `http://127.0.0.1:8765`. Model weights, datasets, generated audio, exports, and machine-specific settings are intentionally excluded from Git.
 
-## Connect Ubuntu training
+## First-time setup
 
-1. Open **Settings** in the left sidebar.
-2. Click **Auto Detect**, then **Test Connection**.
-3. Add a captioned instrumental dataset to a project.
-4. Choose the dataset and training steps, then click **Start Training**.
-5. Follow preparation, loss, elapsed time, VRAM, logs, and checkpoints in **Training Runs**.
+Open **Setup** in the left sidebar and press **Set Up YuE Studio**. It prepares the Ubuntu Python environment, FFmpeg, required Python packages, and YuE2 training assets for you. It then verifies the GPU, models, and workspace before it reports Ready.
+
+The first setup downloads roughly 11 GB of model files and needs about 18 GB free disk space. If Ubuntu/WSL is not present, the app shows the one Windows command required to install it. Windows may ask for administrator approval and a restart; return to Setup afterward and press **Continue Setup**.
+
+If an existing YuE2 environment is already working, the app detects it and leaves it untouched. **Advanced** is only for repairs or custom locations.
+
+## Train an instrumental LoRA
+
+1. Add a captioned instrumental dataset to a project.
+2. Choose the dataset and training values.
+3. Click **Start Training**.
+4. Follow preparation, loss, elapsed time, VRAM, logs, and checkpoints in **Training Runs**.
 
 Every run is created below the configured WSL run workspace with its own manifest, staged source files, preparation data, logs, and creator-format `.pt` checkpoints. The app does not write to the preserved `medieval_echoes_only_raw` run.
 
-The current bridge requires an existing WSL YuE2 environment. Automated installation and ComfyUI conversion are later milestones.
+The setup process uses the verified WSL/Ubuntu workflow. It does not use Docker.
 
 ## Training handoff
 
