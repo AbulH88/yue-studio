@@ -24,6 +24,7 @@ class CaptionServiceTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             service = CaptionService(root)
+            service.status = lambda: {"ready": True}
             good = root / "good.wav"
             bad = root / "bad.wav"
             existing = root / "existing.wav"
