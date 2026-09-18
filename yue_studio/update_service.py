@@ -47,7 +47,7 @@ class UpdateService:
         return {"current_version": VERSION, "active": bool(self._thread and self._thread.is_alive()), **update}
 
     def check_async(self) -> None:
-        if self._thread and self._thread.is_alive() or self.is_busy():
+        if self._thread and self._thread.is_alive():
             return
         self._thread = threading.Thread(target=self._check, daemon=True, name="yue-studio-update-check")
         self._thread.start()
