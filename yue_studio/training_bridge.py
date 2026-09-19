@@ -473,8 +473,9 @@ class TrainingBridge:
         if not re.fullmatch(r"[a-z0-9_-]+", run_id) or not checkpoint_names:
             raise ValueError("Choose at least one valid checkpoint.")
         target = Path(destination).expanduser().resolve()
+        target.mkdir(parents=True, exist_ok=True)
         if not target.is_dir():
-            raise ValueError("Choose an existing export folder.")
+            raise ValueError("Could not create the export folder.")
         settings = self.settings()
         run_dir = f"{str(settings['runs_root']).rstrip('/')}/{run_id}"
         exporter = self.windows_to_wsl(settings, self.app_root / "wsl" / "export_comfy_lora.py")
