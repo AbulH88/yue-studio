@@ -485,7 +485,7 @@ class TrainingBridge:
                 raise ValueError("Invalid checkpoint name.")
             if self._run_wsl(settings, ["test", "-f", f"{run_dir}/checkpoints/{name}"]).returncode:
                 raise ValueError(f"Checkpoint not found: {name}")
-            folder = f"{safe_run_name(run_id)}-{Path(name).stem}"
+            folder = Path(name).stem
             result = self._run_wsl(settings, [str(settings["wsl_python"]), exporter, "--checkpoint", f"{run_dir}/checkpoints/{name}", "--destination", f"{target_wsl}/{folder}"], timeout=300)
             if result.returncode:
                 raise RuntimeError(result.stderr.strip() or f"Could not export {name}.")
