@@ -21,17 +21,34 @@ def main() -> None:
     rank = int(saved.get("rank", 0))
     if not rank or len(values) % 14:
         raise RuntimeError("This is not a compatible YuE Studio LoRA checkpoint.")
-    targets = (("self_attn", ("q_proj", "k_proj", "v_proj", "o_proj")), ("mlp", ("gate_proj", "up_proj", "down_proj")))
-    state, index = {}, 0
+    state = {}
+
+    def add(prefix: str, down: torch.Tensor, up: torch.Tensor) -> None:
+        state[prefix + ".lora_A.weight"] = down.contiguous()
+        state[prefix + ".lora_B.weight"] = up.contiguous()
+
+    def add_fused(prefix: str, pairs: list[tuple[torch.Tensor, torch.Tensor]]) -> None:
+        """Pack independent LoRAs into ComfyUI's fused projection layout."""
+        down = torch.cat([item[0] for item in pairs], dim=0)
+        up = torch.zeros(sum(item[1].shape[0] for item in pairs), down.shape[0], dtype=pairs[0][1].dtype)
+        rows = columns = 0
+        for item_down, item_up in pairs:
+            next_rows, next_columns = rows + item_up.shape[0], columns + item_down.shape[0]
+            up[rows:next_rows, columns:next_columns] = item_up
+            rows, columns = next_rows, next_columns
+        add(prefix, down, up)
+
+    # YuE Studio trains the upstream, split semantic projections. ComfyUI stores
+    # the same text encoder as packed QKV and gate/up matrices.
     for layer in range(len(values) // 14):
-        for group, names in targets:
-            for name in names:
-                # ComfyUI's generic Load LoRA maps YuE2 weights through the
-                # BaseModel state-dict namespace, which starts at diffusion_model.
-                prefix = f"diffusion_model.model.layers.{layer}.{group}.{name}"
-                state[prefix + ".lora_A.weight"] = values[index].contiguous()
-                state[prefix + ".lora_B.weight"] = values[index + 1].contiguous()
-                index += 2
+        offset = layer * 14
+        q, k, v, o = [(values[offset + index], values[offset + index + 1]) for index in (0, 2, 4, 6)]
+        gate, up, down = [(values[offset + index], values[offset + index + 1]) for index in (8, 10, 12)]
+        prefix = f"text_encoders.model.layers.{layer}"
+        add_fused(prefix + ".self_attn.qkv_proj", [q, k, v])
+        add(prefix + ".self_attn.o_proj", *o)
+        add_fused(prefix + ".mlp.gate_up_proj", [gate, up])
+        add(prefix + ".mlp.down_proj", *down)
     destination.mkdir(parents=True, exist_ok=True)
     save_file(state, str(destination / "adapter_model.safetensors"))
     (destination / "adapter_config.json").write_text(json.dumps({"peft_type": "LORA", "r": rank, "lora_alpha": rank, "target_modules": [key.rsplit(".lora_", 1)[0] for key in state if key.endswith(".lora_A.weight")]}, indent=2), encoding="utf-8")
