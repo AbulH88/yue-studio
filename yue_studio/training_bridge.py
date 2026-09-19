@@ -138,7 +138,16 @@ class TrainingBridge:
         )
 
     def windows_to_wsl(self, settings: dict, path: Path) -> str:
-        result = self._run_wsl(settings, ["wslpath", "-a", str(path.resolve())])
+        resolved = path.resolve()
+        # Passing a Windows path through WSL's argument parser can consume its
+        # backslashes. Translate mounted drive paths directly instead.
+        if resolved.drive:
+            relative = resolved.as_posix().split(":/", 1)[-1]
+            candidate = f"/mnt/{resolved.drive[0].lower()}/{relative}"
+            accessible = self._run_wsl(settings, ["test", "-e", candidate])
+            if accessible.returncode == 0:
+                return candidate
+        result = self._run_wsl(settings, ["wslpath", "-a", str(resolved)])
         if result.returncode != 0 or not result.stdout.strip():
             raise ValueError(f"WSL could not access this Windows path: {path}")
         return result.stdout.strip()
