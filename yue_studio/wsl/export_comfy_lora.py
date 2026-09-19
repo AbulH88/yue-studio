@@ -26,7 +26,9 @@ def main() -> None:
     for layer in range(len(values) // 14):
         for group, names in targets:
             for name in names:
-                prefix = f"model.layers.{layer}.{group}.{name}"
+                # ComfyUI's generic Load LoRA maps YuE2 weights through the
+                # BaseModel state-dict namespace, which starts at diffusion_model.
+                prefix = f"diffusion_model.model.layers.{layer}.{group}.{name}"
                 state[prefix + ".lora_A.weight"] = values[index].contiguous()
                 state[prefix + ".lora_B.weight"] = values[index + 1].contiguous()
                 index += 2
